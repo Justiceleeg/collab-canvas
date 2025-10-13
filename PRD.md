@@ -47,7 +47,7 @@ multiplayer foundation.
 
 ### 1.4 Deployment
 
-- Deployed publicly using Firebase Hosting
+- Deployed publicly using Vercel
 - Must support at least 5 concurrent users
 - Accessible via a public URL
 
@@ -82,7 +82,7 @@ multiplayer foundation.
 
 ### Frontend
 
-- **React (Vite)** for fast iteration
+- **Next.js (App Router)** for React framework with server-side capabilities
 - **Konva.js** for 2D canvas rendering
 - **Zustand** (or simple React context) for local state management
 
@@ -164,7 +164,7 @@ multiplayer foundation.
 | Collaboration | Object-level locking                        | Only one user can edit a shape at a time   |
 | Auth          | Login/signup/guest flow                     | Users have names displayed                 |
 | Persistence   | Canvas state retained on reload             | Data reloads from Firestore                |
-| Deployment    | Firebase Hosting public URL                 | Live demo works on multiple browsers       |
+| Deployment    | Vercel public URL                           | Live demo works on multiple browsers       |
 
 ---
 

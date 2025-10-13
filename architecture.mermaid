@@ -3,7 +3,7 @@ graph LR
         direction LR
         User([fa:fa-user User]) -- "Interacts with" --> UI
 
-        subgraph "React Application (Vite)"
+        subgraph "Next.js Application (App Router)"
             direction TB
             UI("UI Components<br/><i>Canvas, Toolbar, Cursors</i><br/>Konva.js for rendering")
             Hooks("React Hooks (Logic Layer)<br/><i>useCanvas, useFirestore<br/>useLocking, usePresence</i>")
@@ -22,15 +22,17 @@ graph LR
         Auth["<i class='fa-brands fa-firebase'></i> Firebase Authentication<br/>Email/Password & Anonymous"]
         FirestoreDb["<i class='fa-brands fa-firebase'></i> Firestore Database<br/>- canvasObjects Collection<br/><i>Persistent canvas data</i>"]
         RealtimeDb["<i class='fa-brands fa-firebase'></i> Realtime Database<br/>- presence/{userId} Path<br/><i>Ephemeral presence data</i>"]
-        Hosting["<i class='fa-brands fa-firebase'></i> Firebase Hosting<br/>Serves static React app"]
+    end
+
+    subgraph "Deployment Platform"
+        direction TB
+        Vercel["<i class='fa-solid fa-triangle'></i> Vercel<br/>Hosts & serves Next.js app"]
     end
 
     subgraph "CI/CD Pipeline"
         direction TB
         GitHub["<i class='fa-brands fa-github'></i> GitHub Repo"]
-        Actions["GitHub Actions<br/>Build & Deploy Workflow"]
-        GitHub -- "Push to main" --> Actions
-        Actions -- "Deploys to" --> Hosting
+        GitHub -- "Push to main<br/>(Auto-deploy)" --> Vercel
     end
 
     %% Data & User Flows
@@ -57,4 +59,4 @@ graph LR
     FunctionCalling -- "Manipulates canvas state via" --> Services
 
     %% Serving the Application
-    Hosting -- "Serves React App to" --> UI
+    Vercel -- "Serves Next.js App to" --> UI

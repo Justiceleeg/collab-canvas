@@ -4,73 +4,72 @@
 
 ```
 collab-canvas/
-├── .github/
-│   └── workflows/
-│       └── firebase-hosting.yml          # Auto-deploy on push to main
+├── app/
+│   ├── (auth)/
+│   │   └── login/
+│   │       └── page.tsx                  # Login page
+│   ├── canvas/
+│   │   └── page.tsx                      # Main canvas page
+│   ├── layout.tsx                        # Root layout
+│   ├── page.tsx                          # Home/redirect page
+│   └── globals.css                       # Global styles
+├── components/
+│   ├── Canvas/
+│   │   ├── Canvas.tsx                    # Main canvas component
+│   │   ├── Stage.tsx                     # Konva Stage wrapper
+│   │   ├── Shape.tsx                     # Generic shape renderer
+│   │   ├── Rectangle.tsx                 # Rectangle shape
+│   │   ├── Circle.tsx                    # Circle shape
+│   │   ├── Text.tsx                      # Text shape
+│   │   ├── Transformer.tsx               # Transform controls
+│   │   ├── SelectionBox.tsx              # Multi-select rectangle
+│   │   └── Cursors.tsx                   # Multiplayer cursors
+│   ├── Toolbar/
+│   │   ├── Toolbar.tsx                   # Main toolbar
+│   │   ├── ShapeTools.tsx                # Shape creation buttons
+│   │   └── LayerTools.tsx                # Layer order controls
+│   ├── Auth/
+│   │   ├── AuthProvider.tsx              # Auth context provider
+│   │   └── LoginForm.tsx                 # Login UI
+│   └── Presence/
+│       ├── PresenceIndicator.tsx         # Online users list
+│       └── UserCursor.tsx                # Single cursor component
+├── hooks/
+│   ├── useAuth.ts                        # Firebase Auth hook
+│   ├── useCanvas.ts                      # Canvas state management
+│   ├── useFirestore.ts                   # Firestore sync hook
+│   ├── usePresence.ts                    # User presence tracking (Realtime DB)
+│   ├── useCursors.ts                     # Cursor position sync (Realtime DB)
+│   ├── useLocking.ts                     # Object locking logic
+│   └── usePerformance.ts                 # FPS & performance monitoring
+├── services/
+│   ├── firebase.ts                       # Firebase initialization (both DBs)
+│   ├── firestore.service.ts              # Firestore CRUD operations
+│   ├── auth.service.ts                   # Auth operations
+│   └── presence.service.ts               # Presence management (Realtime DB)
+├── store/
+│   ├── canvasStore.ts                    # Zustand store for canvas state
+│   └── selectionStore.ts                 # Selection state management
+├── types/
+│   ├── canvas.types.ts                   # Shape & canvas types
+│   ├── user.types.ts                     # User & presence types
+│   └── lock.types.ts                     # Locking types
+├── utils/
+│   ├── geometry.ts                       # Shape calculations
+│   ├── transforms.ts                     # Transform utilities
+│   ├── lockManager.ts                    # Lock timeout & cleanup
+│   └── performance.ts                    # Performance utilities
 ├── public/
-│   └── index.html
-├── src/
-│   ├── components/
-│   │   ├── Canvas/
-│   │   │   ├── Canvas.tsx                # Main canvas component
-│   │   │   ├── Stage.tsx                 # Konva Stage wrapper
-│   │   │   ├── Shape.tsx                 # Generic shape renderer
-│   │   │   ├── Rectangle.tsx             # Rectangle shape
-│   │   │   ├── Circle.tsx                # Circle shape
-│   │   │   ├── Text.tsx                  # Text shape
-│   │   │   ├── Transformer.tsx           # Transform controls
-│   │   │   ├── SelectionBox.tsx          # Multi-select rectangle
-│   │   │   └── Cursors.tsx               # Multiplayer cursors
-│   │   ├── Toolbar/
-│   │   │   ├── Toolbar.tsx               # Main toolbar
-│   │   │   ├── ShapeTools.tsx            # Shape creation buttons
-│   │   │   └── LayerTools.tsx            # Layer order controls
-│   │   ├── Auth/
-│   │   │   ├── AuthProvider.tsx          # Auth context provider
-│   │   │   ├── LoginForm.tsx             # Login UI
-│   │   │   └── ProtectedRoute.tsx        # Route guard
-│   │   └── Presence/
-│   │       ├── PresenceIndicator.tsx     # Online users list
-│   │       └── UserCursor.tsx            # Single cursor component
-│   ├── hooks/
-│   │   ├── useAuth.ts                    # Firebase Auth hook
-│   │   ├── useCanvas.ts                  # Canvas state management
-│   │   ├── useFirestore.ts               # Firestore sync hook
-│   │   ├── usePresence.ts                # User presence tracking (Realtime DB)
-│   │   ├── useCursors.ts                 # Cursor position sync (Realtime DB)
-│   │   ├── useLocking.ts                 # Object locking logic
-│   │   └── usePerformance.ts             # FPS & performance monitoring
-│   ├── services/
-│   │   ├── firebase.ts                   # Firebase initialization (both DBs)
-│   │   ├── firestore.service.ts          # Firestore CRUD operations
-│   │   ├── auth.service.ts               # Auth operations
-│   │   └── presence.service.ts           # Presence management (Realtime DB)
-│   ├── store/
-│   │   ├── canvasStore.ts                # Zustand store for canvas state
-│   │   └── selectionStore.ts             # Selection state management
-│   ├── types/
-│   │   ├── canvas.types.ts               # Shape & canvas types
-│   │   ├── user.types.ts                 # User & presence types
-│   │   └── lock.types.ts                 # Locking types
-│   ├── utils/
-│   │   ├── geometry.ts                   # Shape calculations
-│   │   ├── transforms.ts                 # Transform utilities
-│   │   ├── lockManager.ts                # Lock timeout & cleanup
-│   │   └── performance.ts                # Performance utilities
-│   ├── App.tsx
-│   ├── main.tsx
-│   └── index.css
+│   └── (static assets)
 ├── .env.example                          # Firebase config template
-├── .env                                  # Firebase config (gitignored)
+├── .env.local                            # Firebase config (gitignored)
 ├── .gitignore
-├── firebase.json                         # Firebase hosting config
-├── .firebaserc                           # Firebase project config
 ├── firestore.rules                       # Firestore security rules
 ├── database.rules.json                   # Realtime Database security rules
 ├── firestore.indexes.json                # Composite indexes
 ├── package.json
 ├── tsconfig.json
-├── vite.config.ts
+├── next.config.js                        # Next.js configuration
 └── README.md
 ```
 
@@ -123,20 +122,22 @@ presence system.
 
 #### Tasks:
 
-1. **Initialize Vite + React + TypeScript project**
-   - Files: `package.json`, `vite.config.ts`, `tsconfig.json`
-   - Install: `react`, `react-dom`, `typescript`, `vite`
+1. **Initialize Next.js + TypeScript project**
+   - Files: `package.json`, `next.config.js`, `tsconfig.json`
+   - Run:
+     `npx create-next-app@latest collab-canvas --typescript --app --tailwind --no-src-dir`
+   - Configure for TypeScript and App Router
 
 2. **Install core dependencies**
    - Files: `package.json`
    - Install: `firebase`, `konva`, `react-konva`, `zustand`
 
 3. **Setup Firebase project**
-   - Files: `src/services/firebase.ts`, `.env.example`, `.env`
+   - Files: `services/firebase.ts`, `.env.example`, `.env.local`
    - Create Firebase project in console
    - Enable Firestore and Authentication
    - **Enable Realtime Database** (for presence system)
-   - Add Firebase config to environment variables
+   - Add Firebase config to environment variables (use `NEXT_PUBLIC_` prefix)
    - Initialize both Firestore and Realtime Database in `firebase.ts`
    - Export `db` (Firestore) and `rtdb` (Realtime Database)
 
@@ -149,6 +150,7 @@ presence system.
 5. **Setup file structure**
    - Files: Create all directories from structure above
    - Create placeholder files with TODO comments
+   - Setup `app` directory structure with routes
 
 #### Deliverable:
 
@@ -159,37 +161,40 @@ presence system.
 
 ---
 
-### **PR #2: Firebase Hosting & CI/CD** 🚀
+### **PR #2: Vercel Deployment & CI/CD** 🚀
 
 **Priority:** HIGH (Enable continuous deployment)\
 **Estimated Time:** 1-2 hours
 
 #### Tasks:
 
-1. **Setup Firebase Hosting**
-   - Files: `firebase.json`, `.firebaserc`
-   - Initialize Firebase hosting
-   - Configure build output directory (`dist`)
+1. **Setup Vercel project**
+   - Connect GitHub repository to Vercel
+   - Configure build settings (Next.js auto-detected)
+   - Set environment variables in Vercel dashboard (all `NEXT_PUBLIC_*` vars)
 
-2. **Create GitHub Actions workflow**
-   - Files: `.github/workflows/firebase-hosting.yml`
-   - Auto-deploy on push to `main`
-   - Build and deploy to Firebase Hosting
+2. **Configure deployment settings**
+   - Files: `vercel.json` (optional, if custom config needed)
+   - Ensure `next.config.js` is properly configured
+   - Set up production and preview deployments
 
 3. **Add deployment documentation**
    - Files: `README.md`
    - Document deployment process
    - Add deployed URL placeholder
+   - Document environment variable setup in Vercel
 
 4. **Deploy initial version**
-   - Push to main and verify deployment
+   - Push to main and verify auto-deployment
    - Confirm public URL is accessible
+   - Test preview deployments on PR branches
 
 #### Deliverable:
 
-- ✅ App deployed and publicly accessible
+- ✅ App deployed and publicly accessible on Vercel
 - ✅ Auto-deployment working on push to main
 - ✅ Public URL documented in README
+- ✅ Environment variables configured in Vercel
 
 ---
 
@@ -201,29 +206,30 @@ presence system.
 #### Tasks:
 
 1. **Create auth service**
-   - Files: `src/services/auth.service.ts`
+   - Files: `services/auth.service.ts`
    - Implement email/password sign up/sign in
    - Implement anonymous sign in
    - Handle user display name
 
 2. **Build auth context and hook**
-   - Files: `src/components/Auth/AuthProvider.tsx`, `src/hooks/useAuth.ts`
-   - Create auth state context
+   - Files: `components/Auth/AuthProvider.tsx`, `hooks/useAuth.ts`
+   - Create auth state context (use 'use client' directive)
    - Handle auth state changes
 
-3. **Create login UI**
-   - Files: `src/components/Auth/LoginForm.tsx`
+3. **Create login page**
+   - Files: `app/(auth)/login/page.tsx`, `components/Auth/LoginForm.tsx`
    - Email/password form
    - Anonymous login button
    - Display name input
 
-4. **Add protected route**
-   - Files: `src/components/Auth/ProtectedRoute.tsx`, `src/App.tsx`
+4. **Add auth protection with middleware**
+   - Files: `middleware.ts`, `app/layout.tsx`
    - Redirect unauthenticated users to login
    - Handle loading states
+   - Wrap app with AuthProvider
 
 5. **Define user types**
-   - Files: `src/types/user.types.ts`
+   - Files: `types/user.types.ts`
    - User, AuthState types
 
 #### Deliverable:
@@ -232,6 +238,7 @@ presence system.
 - ✅ Anonymous authentication working
 - ✅ User display names stored
 - ✅ Auth state persisted
+- ✅ Protected routes working
 
 ---
 
@@ -243,34 +250,36 @@ presence system.
 #### Tasks:
 
 1. **Create canvas types**
-   - Files: `src/types/canvas.types.ts`
+   - Files: `types/canvas.types.ts`
    - Define Shape, CanvasObject, CanvasState types
 
 2. **Setup Zustand store**
-   - Files: `src/store/canvasStore.ts`
+   - Files: `store/canvasStore.ts`
    - Canvas state management
    - Shape CRUD operations (local only)
 
 3. **Build Stage component**
-   - Files: `src/components/Canvas/Stage.tsx`
-   - Konva Stage setup
+   - Files: `components/Canvas/Stage.tsx`
+   - Konva Stage setup (mark as 'use client' - Konva requires DOM)
    - Pan and zoom controls (mouse wheel + drag)
    - Viewport state management
 
 4. **Create Canvas wrapper**
-   - Files: `src/components/Canvas/Canvas.tsx`, `src/hooks/useCanvas.ts`
+   - Files: `components/Canvas/Canvas.tsx`, `hooks/useCanvas.ts`
+   - Mark as 'use client' component
    - Render Stage
    - Handle canvas events
    - Canvas dimensions and responsiveness
 
-5. **Add basic styling**
-   - Files: `src/index.css`
+5. **Create canvas page**
+   - Files: `app/canvas/page.tsx`
+   - Import Canvas component dynamically (to avoid SSR issues with Konva)
+   - Add page-level layout
+
+6. **Add basic styling**
+   - Files: `app/globals.css`
    - Canvas container styles
    - Full viewport layout
-
-6. **Update App component**
-   - Files: `src/App.tsx`
-   - Mount Canvas after auth
 
 #### Deliverable:
 
@@ -278,6 +287,7 @@ presence system.
 - ✅ Pan with mouse drag working
 - ✅ Zoom with mouse wheel working
 - ✅ Smooth 60 FPS interactions
+- ✅ No SSR errors with Konva
 
 ---
 
@@ -289,30 +299,30 @@ presence system.
 #### Tasks:
 
 1. **Create Firestore service**
-   - Files: `src/services/firestore.service.ts`
+   - Files: `services/firestore.service.ts`
    - CRUD operations for `canvasObjects`
    - Batch operations
    - Transaction support
 
 2. **Build Firestore sync hook**
-   - Files: `src/hooks/useFirestore.ts`
+   - Files: `hooks/useFirestore.ts`
    - onSnapshot listeners for `canvasObjects`
    - Real-time updates to local store
    - Error handling and reconnection
 
 3. **Integrate with canvas store**
-   - Files: `src/store/canvasStore.ts`
+   - Files: `store/canvasStore.ts`
    - Subscribe to Firestore changes
    - Push local changes to Firestore
    - Optimistic updates
 
 4. **Add loading states**
-   - Files: `src/components/Canvas/Canvas.tsx`
+   - Files: `components/Canvas/Canvas.tsx`
    - Loading indicator while fetching initial state
    - Error states
 
 5. **Handle persistence**
-   - Files: `src/hooks/useFirestore.ts`
+   - Files: `hooks/useFirestore.ts`
    - Canvas state persists on reload
    - Handle empty canvas initialization
 
@@ -333,30 +343,29 @@ presence system.
 #### Tasks:
 
 1. **Create Shape components**
-   - Files: `src/components/Canvas/Shape.tsx`,
-     `src/components/Canvas/Rectangle.tsx`
-   - Generic Shape wrapper
+   - Files: `components/Canvas/Shape.tsx`, `components/Canvas/Rectangle.tsx`
+   - Generic Shape wrapper (mark as 'use client')
    - Rectangle rendering with Konva.Rect
 
 2. **Add shape creation toolbar**
-   - Files: `src/components/Toolbar/Toolbar.tsx`,
-     `src/components/Toolbar/ShapeTools.tsx`
+   - Files: `components/Toolbar/Toolbar.tsx`,
+     `components/Toolbar/ShapeTools.tsx`
    - Rectangle creation button
    - Toolbar styling
 
 3. **Implement shape creation logic**
-   - Files: `src/hooks/useCanvas.ts`, `src/store/canvasStore.ts`
+   - Files: `hooks/useCanvas.ts`, `store/canvasStore.ts`
    - Click on canvas to create rectangle
    - Default size, color, position
    - Generate unique IDs
 
 4. **Sync new shapes to Firestore**
-   - Files: `src/services/firestore.service.ts`
+   - Files: `services/firestore.service.ts`
    - Write new shape to `canvasObjects` collection
    - Include all required fields
 
 5. **Add geometry utilities**
-   - Files: `src/utils/geometry.ts`
+   - Files: `utils/geometry.ts`
    - Shape bounds calculation
    - Collision detection helpers
 
@@ -377,28 +386,28 @@ presence system.
 #### Tasks:
 
 1. **Create selection store**
-   - Files: `src/store/selectionStore.ts`
+   - Files: `store/selectionStore.ts`
    - Track selected shape IDs
    - Single selection logic
 
 2. **Add click selection**
-   - Files: `src/components/Canvas/Shape.tsx`
+   - Files: `components/Canvas/Shape.tsx`
    - Click shape to select
    - Visual selection indicator (border/highlight)
 
 3. **Implement drag to move**
-   - Files: `src/components/Canvas/Shape.tsx`, `src/hooks/useCanvas.ts`
+   - Files: `components/Canvas/Shape.tsx`, `hooks/useCanvas.ts`
    - Konva drag events
    - Update shape position in store
    - Sync position changes to Firestore
 
 4. **Add transform utilities**
-   - Files: `src/utils/transforms.ts`
+   - Files: `utils/transforms.ts`
    - Position calculation helpers
    - Snap to grid (optional)
 
 5. **Handle click outside to deselect**
-   - Files: `src/components/Canvas/Stage.tsx`
+   - Files: `components/Canvas/Stage.tsx`
    - Click canvas background to clear selection
 
 #### Deliverable:
@@ -418,29 +427,29 @@ presence system.
 #### Tasks:
 
 1. **Create locking types**
-   - Files: `src/types/lock.types.ts`
+   - Files: `types/lock.types.ts`
    - Lock, LockState types
 
 2. **Build locking service**
-   - Files: `src/hooks/useLocking.ts`, `src/utils/lockManager.ts`
+   - Files: `hooks/useLocking.ts`, `utils/lockManager.ts`
    - Acquire lock (write `lockedBy`, `lockedAt` to Firestore)
    - Release lock (clear fields)
    - Check lock status
    - Automatic timeout cleanup (2-3 seconds)
 
 3. **Integrate locks with shape interaction**
-   - Files: `src/components/Canvas/Shape.tsx`
+   - Files: `components/Canvas/Shape.tsx`
    - Attempt lock on mousedown/dragstart
    - Block interaction if locked by another user
    - Release lock on mouseup/dragend
 
 4. **Add locked visual indicator**
-   - Files: `src/components/Canvas/Shape.tsx`
+   - Files: `components/Canvas/Shape.tsx`
    - Gray border or tooltip when locked by another user
    - Show locking user's name
 
 5. **Handle stale lock cleanup**
-   - Files: `src/utils/lockManager.ts`
+   - Files: `utils/lockManager.ts`
    - Background process to clear expired locks
    - Run on app mount and periodically
 
@@ -465,38 +474,38 @@ presence system.
 #### Tasks:
 
 1. **Create presence service**
-   - Files: `src/services/presence.service.ts`, `src/types/user.types.ts`
+   - Files: `services/presence.service.ts`, `types/user.types.ts`
    - Write user to Realtime Database `presence/{userId}` path on mount
    - Use `onDisconnect().remove()` for automatic cleanup
    - Include user ID, display name, color, online status
    - No need for manual heartbeat polling
 
 2. **Build presence hook**
-   - Files: `src/hooks/usePresence.ts`
+   - Files: `hooks/usePresence.ts`
    - Subscribe to `presence` path using `onValue()` listener
    - Track online users in real-time
    - Filter for users with `online: true`
 
 3. **Create presence indicator UI**
-   - Files: `src/components/Presence/PresenceIndicator.tsx`
+   - Files: `components/Presence/PresenceIndicator.tsx`
    - Show count of online users
    - List user names with colored dots
 
 4. **Build cursor tracking**
-   - Files: `src/hooks/useCursors.ts`
+   - Files: `hooks/useCursors.ts`
    - Update cursor position in Realtime Database (debounced 30-50ms)
    - Use `set()` on `presence/{userId}/cursor` path
    - Subscribe to other users' cursor positions with `onValue()`
 
 5. **Create cursor components**
-   - Files: `src/components/Presence/UserCursor.tsx`,
-     `src/components/Canvas/Cursors.tsx`
-   - Render cursor SVG with user name label
+   - Files: `components/Presence/UserCursor.tsx`,
+     `components/Canvas/Cursors.tsx`
+   - Render cursor SVG with user name label (mark as 'use client')
    - Render all cursors on Stage
    - Transform cursor positions based on canvas zoom/pan
 
 6. **Integrate cursor data with presence**
-   - Files: `src/services/presence.service.ts`
+   - Files: `services/presence.service.ts`
    - Store cursor position within user's presence node
    - Update on mousemove events (debounced)
 
@@ -518,25 +527,25 @@ presence system.
 #### Tasks:
 
 1. **Create Circle component**
-   - Files: `src/components/Canvas/Circle.tsx`
+   - Files: `components/Canvas/Circle.tsx`
    - Render with Konva.Circle
    - Support same interactions as Rectangle
 
 2. **Add circle creation button**
-   - Files: `src/components/Toolbar/ShapeTools.tsx`
+   - Files: `components/Toolbar/ShapeTools.tsx`
    - Circle button in toolbar
 
 3. **Update shape creation logic**
-   - Files: `src/hooks/useCanvas.ts`, `src/store/canvasStore.ts`
+   - Files: `hooks/useCanvas.ts`, `store/canvasStore.ts`
    - Handle `type: 'circle'`
    - Default radius/size
 
 4. **Update Shape wrapper**
-   - Files: `src/components/Canvas/Shape.tsx`
+   - Files: `components/Canvas/Shape.tsx`
    - Conditionally render Circle or Rectangle based on type
 
 5. **Update geometry utilities**
-   - Files: `src/utils/geometry.ts`
+   - Files: `utils/geometry.ts`
    - Circle bounds calculation
    - Circle-specific helpers
 
@@ -557,32 +566,32 @@ presence system.
 #### Tasks:
 
 1. **Create Text component**
-   - Files: `src/components/Canvas/Text.tsx`
+   - Files: `components/Canvas/Text.tsx`
    - Render with Konva.Text
    - Double-click to edit text
    - Input overlay for editing
 
 2. **Add text creation button**
-   - Files: `src/components/Toolbar/ShapeTools.tsx`
+   - Files: `components/Toolbar/ShapeTools.tsx`
    - Text button in toolbar
 
 3. **Implement text editing**
-   - Files: `src/components/Canvas/Text.tsx`
+   - Files: `components/Canvas/Text.tsx`
    - Double-click to enter edit mode
    - Render HTML input overlay
    - Save text on blur/Enter
 
 4. **Update shape creation logic**
-   - Files: `src/hooks/useCanvas.ts`, `src/store/canvasStore.ts`
+   - Files: `hooks/useCanvas.ts`, `store/canvasStore.ts`
    - Handle `type: 'text'`
    - Default text, fontSize
 
 5. **Update Shape wrapper**
-   - Files: `src/components/Canvas/Shape.tsx`
+   - Files: `components/Canvas/Shape.tsx`
    - Render Text component
 
 6. **Sync text changes**
-   - Files: `src/services/firestore.service.ts`
+   - Files: `services/firestore.service.ts`
    - Update text field in Firestore on edit
 
 #### Deliverable:
@@ -602,35 +611,35 @@ presence system.
 #### Tasks:
 
 1. **Create Transformer component**
-   - Files: `src/components/Canvas/Transformer.tsx`
+   - Files: `components/Canvas/Transformer.tsx`
    - Konva.Transformer for resize and rotate handles
    - Attach to selected shape
 
 2. **Implement resize**
-   - Files: `src/components/Canvas/Transformer.tsx`
+   - Files: `components/Canvas/Transformer.tsx`
    - Drag corner handles to resize
    - Update width/height in store
    - Sync to Firestore
 
 3. **Implement rotate**
-   - Files: `src/components/Canvas/Transformer.tsx`
+   - Files: `components/Canvas/Transformer.tsx`
    - Drag rotation handle
    - Update rotation in store
    - Sync to Firestore
 
 4. **Apply transformations to shapes**
-   - Files: `src/components/Canvas/Shape.tsx`,
-     `src/components/Canvas/Rectangle.tsx`, `src/components/Canvas/Circle.tsx`
+   - Files: `components/Canvas/Shape.tsx`, `components/Canvas/Rectangle.tsx`,
+     `components/Canvas/Circle.tsx`
    - Read rotation from shape data
    - Apply via Konva rotation prop
 
 5. **Lock during transformation**
-   - Files: `src/components/Canvas/Transformer.tsx`
+   - Files: `components/Canvas/Transformer.tsx`
    - Acquire lock on transform start
    - Release lock on transform end
 
 6. **Update transform utilities**
-   - Files: `src/utils/transforms.ts`
+   - Files: `utils/transforms.ts`
    - Rotation calculations
    - Bounding box with rotation
 
@@ -652,26 +661,26 @@ presence system.
 #### Tasks:
 
 1. **Update selection store**
-   - Files: `src/store/selectionStore.ts`
+   - Files: `store/selectionStore.ts`
    - Support multiple selected IDs
    - Add/remove from selection
 
 2. **Implement shift-click**
-   - Files: `src/components/Canvas/Shape.tsx`
+   - Files: `components/Canvas/Shape.tsx`
    - Detect shift key on click
    - Add shape to selection instead of replacing
 
 3. **Visual feedback for multi-select**
-   - Files: `src/components/Canvas/Shape.tsx`
+   - Files: `components/Canvas/Shape.tsx`
    - Highlight all selected shapes
 
 4. **Move multiple shapes together**
-   - Files: `src/hooks/useCanvas.ts`
+   - Files: `hooks/useCanvas.ts`
    - Drag one shape in selection → move all
    - Calculate relative offsets
 
 5. **Apply operations to multi-select**
-   - Files: `src/store/canvasStore.ts`
+   - Files: `store/canvasStore.ts`
    - Delete multiple shapes
    - (Duplicate will be added in next PR)
 
@@ -692,22 +701,22 @@ presence system.
 #### Tasks:
 
 1. **Create SelectionBox component**
-   - Files: `src/components/Canvas/SelectionBox.tsx`
+   - Files: `components/Canvas/SelectionBox.tsx`
    - Render selection rectangle
 
 2. **Implement drag-to-select**
-   - Files: `src/components/Canvas/Stage.tsx`, `src/hooks/useCanvas.ts`
+   - Files: `components/Canvas/Stage.tsx`, `hooks/useCanvas.ts`
    - Click and drag on canvas background
    - Draw selection box
    - Detect shapes within box bounds
 
 3. **Update selection on drag end**
-   - Files: `src/store/selectionStore.ts`
+   - Files: `store/selectionStore.ts`
    - Select all shapes intersecting box
    - Clear previous selection (unless shift held)
 
 4. **Add intersection detection**
-   - Files: `src/utils/geometry.ts`
+   - Files: `utils/geometry.ts`
    - Check if shape bounds intersect selection box
 
 #### Deliverable:
@@ -726,28 +735,28 @@ presence system.
 #### Tasks:
 
 1. **Add zIndex to shapes**
-   - Files: `src/types/canvas.types.ts`, `src/store/canvasStore.ts`
+   - Files: `types/canvas.types.ts`, `store/canvasStore.ts`
    - Include zIndex in shape data
    - Default zIndex on creation
 
 2. **Sort shapes by zIndex**
-   - Files: `src/components/Canvas/Canvas.tsx`
+   - Files: `components/Canvas/Canvas.tsx`
    - Render shapes in zIndex order
 
 3. **Create layer tools**
-   - Files: `src/components/Toolbar/LayerTools.tsx`
+   - Files: `components/Toolbar/LayerTools.tsx`
    - "Bring Forward" button
    - "Send Backward" button
    - "Bring to Front" button
    - "Send to Back" button
 
 4. **Implement layer operations**
-   - Files: `src/store/canvasStore.ts`
+   - Files: `store/canvasStore.ts`
    - Update zIndex for selected shapes
    - Sync to Firestore
 
 5. **Add to toolbar**
-   - Files: `src/components/Toolbar/Toolbar.tsx`
+   - Files: `components/Toolbar/Toolbar.tsx`
    - Mount LayerTools component
 
 #### Deliverable:
@@ -767,24 +776,24 @@ presence system.
 #### Tasks:
 
 1. **Implement delete**
-   - Files: `src/store/canvasStore.ts`
+   - Files: `store/canvasStore.ts`
    - Delete selected shapes from local store
    - Delete from Firestore
    - Keyboard shortcut (Delete/Backspace key)
 
 2. **Implement duplicate**
-   - Files: `src/store/canvasStore.ts`
+   - Files: `store/canvasStore.ts`
    - Clone selected shapes with offset position
    - New unique IDs
    - Write to Firestore
 
 3. **Add toolbar buttons**
-   - Files: `src/components/Toolbar/Toolbar.tsx`
+   - Files: `components/Toolbar/Toolbar.tsx`
    - Delete button
    - Duplicate button
 
 4. **Add keyboard shortcuts**
-   - Files: `src/hooks/useCanvas.ts`
+   - Files: `hooks/useCanvas.ts`
    - Delete: Delete/Backspace
    - Duplicate: Ctrl+D / Cmd+D
 
@@ -805,30 +814,30 @@ presence system.
 #### Tasks:
 
 1. **Create performance utilities**
-   - Files: `src/utils/performance.ts`
+   - Files: `utils/performance.ts`
    - FPS counter
    - Render time tracking
 
 2. **Build performance hook**
-   - Files: `src/hooks/usePerformance.ts`
+   - Files: `hooks/usePerformance.ts`
    - Monitor FPS
    - Track object count
    - Measure sync latency
 
 3. **Add performance HUD**
-   - Files: `src/components/Canvas/Canvas.tsx`
+   - Files: `components/Canvas/Canvas.tsx`
    - Display FPS (dev mode)
    - Display object count
    - Display sync latency
 
 4. **Optimize Firestore writes**
-   - Files: `src/hooks/useFirestore.ts`, `src/hooks/useCursors.ts`
+   - Files: `hooks/useFirestore.ts`, `hooks/useCursors.ts`
    - Debounce position updates (50-100ms)
    - Batch writes where possible
    - Throttle cursor updates
 
 5. **Optimize rendering**
-   - Files: `src/components/Canvas/Shape.tsx`
+   - Files: `components/Canvas/Shape.tsx`
    - React.memo for shape components
    - Avoid unnecessary re-renders
 
@@ -853,34 +862,33 @@ presence system.
 #### Tasks:
 
 1. **Add error boundaries**
-   - Files: `src/components/ErrorBoundary.tsx`, `src/App.tsx`
+   - Files: `components/ErrorBoundary.tsx`, `app/layout.tsx`
    - Catch React errors
    - Display error UI
 
 2. **Improve loading states**
-   - Files: `src/components/Canvas/Canvas.tsx`,
-     `src/components/Auth/LoginForm.tsx`
+   - Files: `components/Canvas/Canvas.tsx`, `components/Auth/LoginForm.tsx`
    - Better loading spinners
    - Skeleton screens
 
 3. **Add toast notifications**
-   - Files: Install toast library, create `src/components/Toast.tsx`
+   - Files: Install toast library (e.g., sonner), create `components/Toast.tsx`
    - Success/error messages for operations
    - Network connection status
 
 4. **Handle network errors**
-   - Files: `src/hooks/useFirestore.ts`
+   - Files: `hooks/useFirestore.ts`
    - Retry failed writes
    - Show offline indicator
    - Queue operations when offline
 
 5. **Add keyboard shortcuts help**
-   - Files: `src/components/HelpModal.tsx`
+   - Files: `components/HelpModal.tsx`
    - List all keyboard shortcuts
    - Trigger with "?" key
 
 6. **Final styling polish**
-   - Files: `src/index.css`, component styles
+   - Files: `app/globals.css`, component styles
    - Consistent colors and spacing
    - Responsive design
 
@@ -948,7 +956,7 @@ presence system.
 | PR # | Title                           | Priority | Time     | Cumulative            |
 | ---- | ------------------------------- | -------- | -------- | --------------------- |
 | 1    | Project Setup & Firebase Config | CRITICAL | 2.5-3.5h | 2.5-3.5h              |
-| 2    | Firebase Hosting & CI/CD        | HIGH     | 1-2h     | 3.5-5.5h              |
+| 2    | Vercel Deployment & CI/CD       | HIGH     | 1-2h     | 3.5-5.5h              |
 | 3    | Authentication System           | HIGH     | 3-4h     | 6.5-9.5h              |
 | 4    | Basic Canvas with Pan & Zoom    | HIGH     | 4-5h     | 10.5-14.5h            |
 | 5    | Firestore Sync Infrastructure   | CRITICAL | 5-6h     | 15.5-20.5h            |
@@ -1061,7 +1069,7 @@ Use this for each PR:
 These PRs are absolutely required to pass the MVP checkpoint:
 
 ✅ **PR #1** - Project Setup & Firebase Configuration (Firestore + Realtime DB)\
-✅ **PR #2** - Firebase Hosting & CI/CD\
+✅ **PR #2** - Vercel Deployment & CI/CD\
 ✅ **PR #3** - Authentication System\
 ✅ **PR #4** - Basic Canvas with Pan & Zoom\
 ✅ **PR #5** - Firestore Sync Infrastructure\
@@ -1080,21 +1088,23 @@ time constraints.
 
 ## Quick Reference: File Responsibilities
 
-| File/Directory             | Primary Responsibility                                                   |
-| -------------------------- | ------------------------------------------------------------------------ |
-| `src/services/`            | Firebase initialization (both DBs), Firestore ops, Auth, Presence (RTDB) |
-| `src/components/Canvas/`   | Canvas rendering, shapes, cursors, transformers                          |
-| `src/components/Toolbar/`  | UI controls for shape creation and manipulation                          |
-| `src/components/Auth/`     | Authentication UI and logic                                              |
-| `src/components/Presence/` | Online users display and cursor rendering (RTDB data)                    |
-| `src/hooks/`               | Custom React hooks for state, sync, locking, presence (RTDB)             |
-| `src/store/`               | Zustand state management (canvas state, selection state)                 |
-| `src/types/`               | TypeScript type definitions                                              |
-| `src/utils/`               | Helper functions (geometry, transforms, performance, locking)            |
-| `firestore.rules`          | Security rules for Firestore (canvas objects)                            |
-| `database.rules.json`      | Security rules for Realtime Database (presence)                          |
-| `firestore.indexes.json`   | Composite indexes for queries                                            |
-| `.github/workflows/`       | CI/CD deployment automation                                              |
+| File/Directory           | Primary Responsibility                                                   |
+| ------------------------ | ------------------------------------------------------------------------ |
+| `app/`                   | Next.js App Router pages and layouts                                     |
+| `services/`              | Firebase initialization (both DBs), Firestore ops, Auth, Presence (RTDB) |
+| `components/Canvas/`     | Canvas rendering, shapes, cursors, transformers                          |
+| `components/Toolbar/`    | UI controls for shape creation and manipulation                          |
+| `components/Auth/`       | Authentication UI and logic                                              |
+| `components/Presence/`   | Online users display and cursor rendering (RTDB data)                    |
+| `hooks/`                 | Custom React hooks for state, sync, locking, presence (RTDB)             |
+| `store/`                 | Zustand state management (canvas state, selection state)                 |
+| `types/`                 | TypeScript type definitions                                              |
+| `utils/`                 | Helper functions (geometry, transforms, performance, locking)            |
+| `firestore.rules`        | Security rules for Firestore (canvas objects)                            |
+| `database.rules.json`    | Security rules for Realtime Database (presence)                          |
+| `firestore.indexes.json` | Composite indexes for queries                                            |
+| `middleware.ts`          | Next.js middleware for auth protection                                   |
+| `next.config.js`         | Next.js configuration                                                    |
 
 ---
 
@@ -1145,16 +1155,20 @@ time constraints.
 
 ## Environment Variables Required
 
-Create `.env` file with:
+Create `.env.local` file with:
 
 ```env
-VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://your_project.firebaseio.com
 ```
+
+**Note:** All Firebase environment variables must use the `NEXT_PUBLIC_` prefix
+to be accessible in client components.
 
 ---
 
@@ -1347,10 +1361,10 @@ service cloud.firestore {
 
 **Check:**
 
-- `firebase.json` points to correct build directory (`dist`)
-- GitHub Actions has Firebase token/secret
-- Build completes successfully locally
-- `.env` variables are set (or use Firebase config)
+- Vercel project is connected to GitHub repo
+- Build completes successfully locally (`npm run build`)
+- Environment variables are set in Vercel dashboard
+- All `NEXT_PUBLIC_*` variables are configured correctly
 
 ---
 
