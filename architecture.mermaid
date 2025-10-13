@@ -1,0 +1,60 @@
+graph LR
+    subgraph "User's Browser (Client)"
+        direction LR
+        User([fa:fa-user User]) -- "Interacts with" --> UI
+
+        subgraph "React Application (Vite)"
+            direction TB
+            UI("UI Components<br/><i>Canvas, Toolbar, Cursors</i><br/>Konva.js for rendering")
+            Hooks("React Hooks (Logic Layer)<br/><i>useCanvas, useFirestore<br/>useLocking, usePresence</i>")
+            State("Zustand (State Management)<br/><i>canvasStore<br/>selectionStore</i>")
+            Services("Service Layer (Data Access)<br/><i>firestore.service.ts<br/>auth.service.ts</i>")
+
+            UI -- "Triggers actions via" --> Hooks
+            Hooks -- "Updates & reads from" --> State
+            State -- "Triggers UI re-render" --> UI
+            Hooks -- "Calls backend via" --> Services
+        end
+    end
+
+    subgraph "Firebase Backend (Serverless)"
+        direction TB
+        Auth["<i class='fa-brands fa-firebase'></i> Firebase Authentication<br/>Email/Password & Anonymous"]
+        FirestoreDb["<i class='fa-brands fa-firebase'></i> Firestore Database<br/>- canvasObjects Collection<br/><i>Persistent canvas data</i>"]
+        RealtimeDb["<i class='fa-brands fa-firebase'></i> Realtime Database<br/>- presence/{userId} Path<br/><i>Ephemeral presence data</i>"]
+        Hosting["<i class='fa-brands fa-firebase'></i> Firebase Hosting<br/>Serves static React app"]
+    end
+
+    subgraph "CI/CD Pipeline"
+        direction TB
+        GitHub["<i class='fa-brands fa-github'></i> GitHub Repo"]
+        Actions["GitHub Actions<br/>Build & Deploy Workflow"]
+        GitHub -- "Push to main" --> Actions
+        Actions -- "Deploys to" --> Hosting
+    end
+
+    %% Data & User Flows
+    Services -- "Canvas Objects<br/>(CRUD)" --> FirestoreDb
+    Services -- "Presence & Cursors<br/>(High-frequency updates)" --> RealtimeDb
+    Services -- "Manages Users" --> Auth
+    User -- "Signs In / Authenticates" --> Auth
+
+    %% Real-time Synchronization Loop
+    FirestoreDb -- "onSnapshot Listener<br/>(Canvas Updates)" --> Services
+    RealtimeDb -- "onValue Listener<br/>(Presence/Cursor Updates)" --> Services
+
+    %% AI Agent Integration (Phase 2)
+    subgraph "AI Agent System"
+        direction TB
+        ChatInput[User via Chat UI]
+        AIAgent["<i class='fa-solid fa-robot'></i> AI Agent (LLM)<br/>OpenAI / LangChain"]
+        FunctionCalling("Function Calling Schema<br/><i>createShape(), moveShape(), etc.</i>")
+
+        ChatInput -- "Sends natural language prompt" --> AIAgent
+        AIAgent -- "Executes tool calls via" --> FunctionCalling
+    end
+
+    FunctionCalling -- "Manipulates canvas state via" --> Services
+
+    %% Serving the Application
+    Hosting -- "Serves React App to" --> UI
