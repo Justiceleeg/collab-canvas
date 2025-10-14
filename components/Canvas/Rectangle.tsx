@@ -11,6 +11,7 @@ interface RectangleProps {
   shape: CanvasObject;
   isSelected?: boolean;
   onClick?: () => void;
+  onMouseDown?: () => void;
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
 }
 
@@ -18,6 +19,7 @@ export default function Rectangle({
   shape,
   isSelected = false,
   onClick,
+  onMouseDown,
   onDragEnd,
 }: RectangleProps) {
   return (
@@ -29,11 +31,12 @@ export default function Rectangle({
       height={shape.height}
       fill={shape.color}
       rotation={shape.rotation || 0}
-      draggable={false} // Will be enabled in PR #7 with locking
+      draggable={true}
       onClick={onClick}
       onTap={onClick}
+      onMouseDown={onMouseDown}
       onDragEnd={onDragEnd}
-      // Visual feedback for selection (will be enhanced in PR #7)
+      // Visual feedback for selection
       stroke={isSelected ? "#0066FF" : undefined}
       strokeWidth={isSelected ? 2 : 0}
       // Performance optimizations

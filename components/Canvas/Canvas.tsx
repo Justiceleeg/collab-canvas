@@ -18,6 +18,8 @@ import Stage from "./Stage";
 import Shape from "./Shape";
 import Toolbar from "../Toolbar/Toolbar";
 import { Text } from "react-konva";
+import { useCanvasStore } from "@/store/canvasStore";
+import type Konva from "konva";
 
 export default function Canvas() {
   const {
@@ -31,6 +33,35 @@ export default function Canvas() {
     isCreatingShape,
   } = useCanvas();
   const { loading, error, isConnected, retry } = useFirestore();
+  const { setSelectedIds } = useCanvasStore();
+  const { updateObject, getObjectById } = useCanvasStore.getState();
+
+  const handleShapeClick = (id: string) => {
+    setSelectedIds([id]);
+  };
+
+  const handleShapeMouseDown = (id: string) => {
+    setSelectedIds([id]);
+  };
+
+  const handleShapeDragEnd = (
+    id: string,
+    e: Konva.KonvaEventObject<DragEvent>
+  ) => {
+    const node = e.target as Konva.Node & { x: () => number; y: () => number };
+    let newX = node.x();
+    let newY = node.y();
+
+    const shape = getObjectById(id);
+    if (shape?.type === "circle") {
+      const radius = (shape.width || 0) / 2;
+      newX = newX - radius;
+      newY = newY - radius;
+    }
+
+    updateObject(id, { x: newX, y: newY });
+    // Firestore sync intentionally deferred to useFirestore hook or future PR
+  };
 
   // Loading state - show while fetching initial canvas state
   if (loading) {
@@ -108,6 +139,9 @@ export default function Canvas() {
               key={obj.id}
               shape={obj}
               isSelected={selectedIds.includes(obj.id)}
+              onClick={() => handleShapeClick(obj.id)}
+              onMouseDown={() => handleShapeMouseDown(obj.id)}
+              onDragEnd={(e) => handleShapeDragEnd(obj.id, e)}
             />
           ))}
 

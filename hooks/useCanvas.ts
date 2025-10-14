@@ -17,8 +17,14 @@ export function useCanvas() {
   const [activeTool, setActiveTool] = useState<ShapeType | null>(null);
   const [isCreatingShape, setIsCreatingShape] = useState(false);
 
-  const { viewport, objects, selectedIds, createShapeData, addObject } =
-    useCanvasStore();
+  const {
+    viewport,
+    objects,
+    selectedIds,
+    createShapeData,
+    addObject,
+    clearSelection,
+  } = useCanvasStore();
   const { user } = useAuth();
 
   // Update canvas dimensions on window resize
@@ -43,14 +49,19 @@ export function useCanvas() {
   // Handle Escape key to deselect tool
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && activeTool) {
-        setActiveTool(null);
+      if (e.key === "Escape") {
+        // Deselect any shapes
+        clearSelection();
+        // Also exit any active tool
+        if (activeTool) {
+          setActiveTool(null);
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeTool]);
+  }, [activeTool, clearSelection]);
 
   // Handle canvas click for shape creation and deselection
   const handleCanvasClick = useCallback(
@@ -133,11 +144,19 @@ export function useCanvas() {
         }
       } else {
         console.log("No active tool or user:", { activeTool, hasUser: !!user });
+        // Clicked on empty canvas: clear selection
+        clearSelection();
       }
-
-      // TODO: Implement deselection logic in PR #7
     },
-    [activeTool, user, viewport, createShapeData, addObject, isCreatingShape]
+    [
+      activeTool,
+      user,
+      viewport,
+      createShapeData,
+      addObject,
+      isCreatingShape,
+      clearSelection,
+    ]
   );
 
   return {

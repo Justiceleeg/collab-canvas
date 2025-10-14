@@ -11,6 +11,7 @@ interface CircleProps {
   shape: CanvasObject;
   isSelected?: boolean;
   onClick?: () => void;
+  onMouseDown?: () => void;
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
 }
 
@@ -18,6 +19,7 @@ export default function Circle({
   shape,
   isSelected = false,
   onClick,
+  onMouseDown,
   onDragEnd,
 }: CircleProps) {
   // Calculate radius from width (assuming width === height for circles)
@@ -31,9 +33,10 @@ export default function Circle({
       radius={radius}
       fill={shape.color}
       rotation={shape.rotation || 0}
-      draggable={false} // Will be enabled in PR #7 with locking
+      draggable={true}
       onClick={onClick}
       onTap={onClick}
+      onMouseDown={onMouseDown}
       onDragEnd={onDragEnd}
       // Visual feedback for selection
       stroke={isSelected ? "#0066FF" : undefined}

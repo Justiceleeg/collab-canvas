@@ -14,6 +14,7 @@ interface ShapeProps {
   shape: CanvasObject;
   isSelected?: boolean;
   onClick?: () => void;
+  onMouseDown?: () => void;
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
 }
 
@@ -21,6 +22,7 @@ export default function Shape({
   shape,
   isSelected = false,
   onClick,
+  onMouseDown,
   onDragEnd,
 }: ShapeProps) {
   // Render the appropriate shape component based on type
@@ -31,6 +33,7 @@ export default function Shape({
           shape={shape}
           isSelected={isSelected}
           onClick={onClick}
+          onMouseDown={onMouseDown}
           onDragEnd={onDragEnd}
         />
       );
@@ -41,6 +44,7 @@ export default function Shape({
           shape={shape}
           isSelected={isSelected}
           onClick={onClick}
+          onMouseDown={onMouseDown}
           onDragEnd={onDragEnd}
         />
       );
@@ -51,6 +55,7 @@ export default function Shape({
           shape={shape}
           isSelected={isSelected}
           onClick={onClick}
+          onMouseDown={onMouseDown}
           onDragEnd={onDragEnd}
         />
       );
