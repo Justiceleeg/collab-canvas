@@ -1,0 +1,17 @@
+{
+	"rules": {
+		".read": false,
+		".write": false,
+		"presence": {
+			"$userId": {
+				".read": "auth != null",
+				".write": "auth != null && auth.uid === $userId",
+				".validate": "newData.hasChildren(['displayName', 'color', 'online'])"
+			}
+		},
+		"test": {
+			".read": true,
+			".write": true
+		}
+	}
+}
