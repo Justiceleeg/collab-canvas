@@ -297,10 +297,11 @@ presence system.
 
 ---
 
-### **PR #5: Firestore Sync Infrastructure** 🔄
+### **PR #5: Firestore Sync Infrastructure** 🔄 ✅
 
 **Priority:** CRITICAL (Real-time foundation)\
-**Estimated Time:** 5-6 hours
+**Estimated Time:** 5-6 hours\
+**Status:** COMPLETED
 
 #### Tasks:
 
@@ -338,6 +339,10 @@ presence system.
 - ✅ Changes persist on page reload
 - ✅ Multiple browser tabs see same state
 - ✅ Error handling for network issues
+- ✅ Optimistic updates implemented
+- ✅ Batch operations for performance
+- ✅ Transaction support for locking
+- ✅ Test panel and comprehensive testing guide
 
 ---
 
@@ -1078,11 +1083,11 @@ These PRs are absolutely required to pass the MVP checkpoint:
 ✅ **PR #2** - Vercel Deployment & CI/CD\
 ✅ **PR #3** - Authentication System\
 ✅ **PR #4** - Basic Canvas with Pan & Zoom\
-✅ **PR #5** - Firestore Sync Infrastructure\
-✅ **PR #6** - Rectangle Shape Creation & Rendering\
-✅ **PR #7** - Shape Selection & Movement\
-✅ **PR #8** - Object-Level Locking (conflict resolution)\
-✅ **PR #9** - User Presence & Multiplayer Cursors (Realtime DB)
+✅ **PR #5** - Firestore Sync Infrastructure ✅ \
+**PR #6** - Rectangle Shape Creation & Rendering\
+**PR #7** - Shape Selection & Movement\
+**PR #8** - Object-Level Locking (conflict resolution)\
+**PR #9** - User Presence & Multiplayer Cursors (Realtime DB)
 
 **Minimum MVP requires PRs #1-9** (all CRITICAL + HIGH priority for
 collaboration)

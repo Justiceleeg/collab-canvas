@@ -1,6 +1,7 @@
 "use client";
 
 // PR #4 - Basic Canvas with Pan & Zoom
+// PR #5 - Firestore Sync Infrastructure (with test panel)
 // Import Canvas component dynamically (to avoid SSR issues with Konva)
 // Add canvas layout
 
@@ -20,6 +21,11 @@ const Canvas = dynamic(() => import("@/components/Canvas/Canvas"), {
       </div>
     </div>
   ),
+});
+
+// Import TestPanel for PR #5 testing (can be removed in production)
+const TestPanel = dynamic(() => import("@/components/DevTools/TestPanel"), {
+  ssr: false,
 });
 
 export default function CanvasPage() {
@@ -56,6 +62,9 @@ export default function CanvasPage() {
 
         {/* Canvas area */}
         <Canvas />
+
+        {/* Test Panel - for PR #5 testing (remove in production) */}
+        {process.env.NODE_ENV === "development" && <TestPanel />}
       </div>
     </AuthGuard>
   );
