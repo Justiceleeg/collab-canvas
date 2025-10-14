@@ -1,20 +1,35 @@
-import FirebaseTest from "./FirebaseTest";
-import RulesTest from "./RulesTest";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Home() {
-  return (
-    <div className="font-sans flex items-center justify-center min-h-screen p-8">
-      <main className="flex flex-col gap-8 items-center max-w-6xl w-full">
-        <h1 className="text-4xl font-bold text-center">🧩 Collab Canvas</h1>
-        <p className="text-center text-gray-600 dark:text-gray-400">
-          Real-time collaborative canvas - Firebase Setup & Verification
-        </p>
+  const router = useRouter();
+  const { user, initialized } = useAuth();
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
-          <FirebaseTest />
-          <RulesTest />
-        </div>
-      </main>
+  useEffect(() => {
+    // Wait for auth to initialize
+    if (!initialized) return;
+
+    // Redirect based on auth state
+    if (user) {
+      router.push("/canvas");
+    } else {
+      router.push("/login");
+    }
+  }, [user, initialized, router]);
+
+  // Show loading state while determining where to redirect
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold mb-4 text-gray-800">
+          🧩 Collab Canvas
+        </h1>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading...</p>
+      </div>
     </div>
   );
 }
