@@ -57,6 +57,7 @@ body {
 }
 
 /* Stage wrapper - positioned below toolbar */
+/* PR #9 - Absolute positioning establishes context for cursor positioning */
 .canvas-stage-wrapper {
   position: absolute;
   top: 64px; /* Height of toolbar */

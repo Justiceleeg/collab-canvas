@@ -14,9 +14,11 @@
 
 import { useCanvas } from "@/hooks/useCanvas";
 import { useFirestore, useFirestoreSync } from "@/hooks/useFirestore";
+import { useCursors } from "@/hooks/useCursors"; // PR #9 - Cursor tracking
 import Stage from "./Stage";
 import Shape from "./Shape";
 import Toolbar from "../Toolbar/Toolbar";
+import Cursors from "./Cursors"; // PR #9 - Multiplayer cursors
 import { Text } from "react-konva";
 import { useCanvasStore } from "@/store/canvasStore";
 import type Konva from "konva";
@@ -35,6 +37,7 @@ export default function Canvas() {
   } = useCanvas();
   const { loading, error, isConnected, retry } = useFirestore();
   const { updateObject } = useFirestoreSync(); // Use sync hook for Firestore updates
+  const { updateCursor } = useCursors(); // PR #9 - Cursor tracking
   const { user } = useAuth();
   const { setSelectedIds } = useCanvasStore();
   const { getObjectById } = useCanvasStore.getState();
@@ -71,6 +74,17 @@ export default function Canvas() {
       console.error("Error syncing shape position:", error);
       // The Firestore subscription will revert to the correct state
     }
+  };
+
+  // PR #9 - Track cursor movement and update in Realtime Database
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Get mouse position relative to the viewport
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Update cursor position (debounced in useCursors hook)
+    updateCursor(x, y);
   };
 
   // Loading state - show while fetching initial canvas state
@@ -124,7 +138,7 @@ export default function Canvas() {
       <Toolbar selectedTool={activeTool} onToolSelect={setActiveTool} />
 
       {/* Stage Wrapper */}
-      <div className="canvas-stage-wrapper">
+      <div className="canvas-stage-wrapper" onMouseMove={handleMouseMove}>
         {/* Canvas Stage */}
         <Stage
           width={dimensions.width}
@@ -167,6 +181,9 @@ export default function Canvas() {
             />
           )}
         </Stage>
+
+        {/* PR #9 - Multiplayer cursors overlay */}
+        <Cursors />
       </div>
 
       {/* Connection status indicator */}

@@ -26,12 +26,23 @@ const TestPanel = dynamic(() => import("@/components/DevTools/TestPanel"), {
   ssr: false,
 });
 
+// PR #9 - Import PresenceIndicator for multiplayer presence
+const PresenceIndicator = dynamic(
+  () => import("@/components/Presence/PresenceIndicator"),
+  {
+    ssr: false,
+  }
+);
+
 export default function CanvasPage() {
   return (
     <AuthGuard requireAuth={true}>
       <div className="canvas-page">
         {/* Canvas area - includes toolbar */}
         <Canvas />
+
+        {/* PR #9 - Presence Indicator showing online users */}
+        <PresenceIndicator />
 
         {/* Test Panel - for PR #5 testing (remove in production) */}
         {process.env.NODE_ENV === "development" && <TestPanel />}
