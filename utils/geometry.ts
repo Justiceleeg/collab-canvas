@@ -1,12 +1,202 @@
-// TODO: PR #6 - Rectangle Shape Creation & Rendering
-// Shape calculations and geometry utilities
-// - Shape bounds calculation
-// - Collision detection helpers
-// - Circle bounds calculation (PR #10)
-// - Circle-specific helpers (PR #10)
-// - Check if shape bounds intersect selection box (PR #14)
+// PR #6 - Rectangle Shape Creation & Rendering
+// Geometry utility functions for shape calculations
 
-export const geometry = {
-  // TODO: Implement geometry utilities
-};
+import { CanvasObject } from "@/types/canvas.types";
 
+/**
+ * Calculate the bounding box of a shape
+ */
+export function getShapeBounds(shape: CanvasObject): {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} {
+  return {
+    x: shape.x,
+    y: shape.y,
+    width: shape.width,
+    height: shape.height,
+  };
+}
+
+/**
+ * Check if a point is inside a shape's bounds
+ */
+export function isPointInShape(
+  point: { x: number; y: number },
+  shape: CanvasObject
+): boolean {
+  const bounds = getShapeBounds(shape);
+
+  // Handle rotation if needed (simplified check for now)
+  // TODO: Add proper rotation handling in future PRs
+  if (shape.rotation && shape.rotation !== 0) {
+    // For now, use a simple axis-aligned bounding box check
+    // This will be improved when rotation is fully implemented in PR #12
+  }
+
+  return (
+    point.x >= bounds.x &&
+    point.x <= bounds.x + bounds.width &&
+    point.y >= bounds.y &&
+    point.y <= bounds.y + bounds.height
+  );
+}
+
+/**
+ * Check if two shapes intersect
+ */
+export function doShapesIntersect(
+  shape1: CanvasObject,
+  shape2: CanvasObject
+): boolean {
+  const bounds1 = getShapeBounds(shape1);
+  const bounds2 = getShapeBounds(shape2);
+
+  return !(
+    bounds1.x + bounds1.width < bounds2.x ||
+    bounds2.x + bounds2.width < bounds1.x ||
+    bounds1.y + bounds1.height < bounds2.y ||
+    bounds2.y + bounds2.height < bounds1.y
+  );
+}
+
+/**
+ * Check if a rectangle intersects with a shape
+ * Used for drag-to-select functionality (PR #14)
+ */
+export function isShapeInSelectionBox(
+  shape: CanvasObject,
+  selectionBox: { x: number; y: number; width: number; height: number }
+): boolean {
+  const shapeBounds = getShapeBounds(shape);
+
+  // Normalize selection box (handle negative width/height)
+  const boxX =
+    selectionBox.width < 0
+      ? selectionBox.x + selectionBox.width
+      : selectionBox.x;
+  const boxY =
+    selectionBox.height < 0
+      ? selectionBox.y + selectionBox.height
+      : selectionBox.y;
+  const boxWidth = Math.abs(selectionBox.width);
+  const boxHeight = Math.abs(selectionBox.height);
+
+  return !(
+    shapeBounds.x + shapeBounds.width < boxX ||
+    boxX + boxWidth < shapeBounds.x ||
+    shapeBounds.y + shapeBounds.height < boxY ||
+    boxY + boxHeight < shapeBounds.y
+  );
+}
+
+/**
+ * Calculate the center point of a shape
+ */
+export function getShapeCenter(shape: CanvasObject): { x: number; y: number } {
+  if (shape.type === "circle") {
+    // For circles, the center is offset by the radius
+    const radius = shape.width / 2;
+    return {
+      x: shape.x + radius,
+      y: shape.y + radius,
+    };
+  }
+
+  // For rectangles and text
+  return {
+    x: shape.x + shape.width / 2,
+    y: shape.y + shape.height / 2,
+  };
+}
+
+/**
+ * Calculate distance between two points
+ */
+export function getDistance(
+  point1: { x: number; y: number },
+  point2: { x: number; y: number }
+): number {
+  const dx = point2.x - point1.x;
+  const dy = point2.y - point1.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * Snap a value to a grid
+ * @param value - The value to snap
+ * @param gridSize - The grid size (default 10)
+ */
+export function snapToGrid(value: number, gridSize: number = 10): number {
+  return Math.round(value / gridSize) * gridSize;
+}
+
+/**
+ * Snap a point to a grid
+ */
+export function snapPointToGrid(
+  point: { x: number; y: number },
+  gridSize: number = 10
+): { x: number; y: number } {
+  return {
+    x: snapToGrid(point.x, gridSize),
+    y: snapToGrid(point.y, gridSize),
+  };
+}
+
+/**
+ * Generate a random color for shapes
+ */
+export function getRandomColor(): string {
+  const colors = [
+    "#FF6B6B", // Red
+    "#4ECDC4", // Teal
+    "#45B7D1", // Blue
+    "#FFA07A", // Light Salmon
+    "#98D8C8", // Mint
+    "#F7DC6F", // Yellow
+    "#BB8FCE", // Purple
+    "#85C1E2", // Sky Blue
+    "#F8B195", // Peach
+    "#C06C84", // Mauve
+  ];
+
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+/**
+ * Calculate bounds for multiple shapes (for multi-select)
+ * Will be used in PR #13 for multi-select functionality
+ */
+export function getMultiShapeBounds(shapes: CanvasObject[]): {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} {
+  if (shapes.length === 0) {
+    return { x: 0, y: 0, width: 0, height: 0 };
+  }
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  shapes.forEach((shape) => {
+    const bounds = getShapeBounds(shape);
+    minX = Math.min(minX, bounds.x);
+    minY = Math.min(minY, bounds.y);
+    maxX = Math.max(maxX, bounds.x + bounds.width);
+    maxY = Math.max(maxY, bounds.y + bounds.height);
+  });
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
+  };
+}

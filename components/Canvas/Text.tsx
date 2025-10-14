@@ -1,10 +1,45 @@
-// TODO: PR #11 - Text Shape Support
-// Text shape component
-// - Render with Konva.Text
-// - Double-click to edit text
-// - Input overlay for editing
+"use client";
 
-export default function Text() {
-  return null;
+// PR #11 - Text Shape Support (Placeholder for PR #6)
+// Text shape rendering with Konva.Text
+
+import { Text as KonvaText } from "react-konva";
+import { CanvasObject } from "@/types/canvas.types";
+import type Konva from "konva";
+
+interface TextProps {
+  shape: CanvasObject;
+  isSelected?: boolean;
+  onClick?: () => void;
+  onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
 }
 
+export default function Text({
+  shape,
+  isSelected = false,
+  onClick,
+  onDragEnd,
+}: TextProps) {
+  return (
+    <KonvaText
+      id={shape.id}
+      x={shape.x}
+      y={shape.y}
+      text={shape.text || "Double-click to edit"}
+      fontSize={shape.fontSize || 16}
+      fill={shape.color}
+      width={shape.width}
+      rotation={shape.rotation || 0}
+      draggable={false} // Will be enabled in PR #7 with locking
+      onClick={onClick}
+      onTap={onClick}
+      onDragEnd={onDragEnd}
+      // Visual feedback for selection
+      stroke={isSelected ? "#0066FF" : undefined}
+      strokeWidth={isSelected ? 1 : 0}
+      // Performance optimizations
+      perfectDrawEnabled={false}
+      listening={true}
+    />
+  );
+}

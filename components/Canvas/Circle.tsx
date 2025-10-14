@@ -1,9 +1,46 @@
-// TODO: PR #10 - Circle Shape Support
-// Circle shape component
-// - Render with Konva.Circle
-// - Support same interactions as Rectangle
+"use client";
 
-export default function Circle() {
-  return null;
+// PR #10 - Circle Shape Support (Placeholder for PR #6)
+// Circle shape rendering with Konva.Circle
+
+import { Circle as KonvaCircle } from "react-konva";
+import { CanvasObject } from "@/types/canvas.types";
+import type Konva from "konva";
+
+interface CircleProps {
+  shape: CanvasObject;
+  isSelected?: boolean;
+  onClick?: () => void;
+  onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
 }
 
+export default function Circle({
+  shape,
+  isSelected = false,
+  onClick,
+  onDragEnd,
+}: CircleProps) {
+  // Calculate radius from width (assuming width === height for circles)
+  const radius = shape.width / 2;
+
+  return (
+    <KonvaCircle
+      id={shape.id}
+      x={shape.x + radius} // Center the circle
+      y={shape.y + radius}
+      radius={radius}
+      fill={shape.color}
+      rotation={shape.rotation || 0}
+      draggable={false} // Will be enabled in PR #7 with locking
+      onClick={onClick}
+      onTap={onClick}
+      onDragEnd={onDragEnd}
+      // Visual feedback for selection
+      stroke={isSelected ? "#0066FF" : undefined}
+      strokeWidth={isSelected ? 2 : 0}
+      // Performance optimizations
+      perfectDrawEnabled={false}
+      listening={true}
+    />
+  );
+}

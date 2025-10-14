@@ -15,9 +15,15 @@ interface StageProps {
   width: number;
   height: number;
   children?: React.ReactNode;
+  onStageClick?: (e: Konva.KonvaEventObject<MouseEvent>) => void;
 }
 
-export default function Stage({ width, height, children }: StageProps) {
+export default function Stage({
+  width,
+  height,
+  children,
+  onStageClick,
+}: StageProps) {
   const stageRef = useRef<Konva.Stage>(null);
   const { viewport, updateViewport } = useCanvasStore();
 
@@ -153,6 +159,31 @@ export default function Stage({ width, height, children }: StageProps) {
     }
   };
 
+  // Handle stage click (for shape creation, etc.)
+  const handleClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    console.log("Stage click event:", {
+      targetType: e.target.getType(),
+      targetName: e.target.name(),
+      isPanning: isPanning.current,
+    });
+
+    // Only trigger if we didn't pan and clicked on empty canvas (not on a shape)
+    // Check if the target is the stage or the layer (background)
+    const clickedOnEmpty =
+      e.target === e.target.getStage() ||
+      e.target.getType() === "Stage" ||
+      e.target.getType() === "Layer";
+
+    console.log("Clicked on empty?", clickedOnEmpty);
+
+    if (!isPanning.current && clickedOnEmpty) {
+      console.log("Calling onStageClick handler");
+      onStageClick?.(e);
+    } else {
+      console.log("Not calling onStageClick - conditions not met");
+    }
+  };
+
   return (
     <KonvaStage
       ref={stageRef}
@@ -163,6 +194,8 @@ export default function Stage({ width, height, children }: StageProps) {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onClick={handleClick}
+      onTap={handleClick}
       scaleX={viewport.scale}
       scaleY={viewport.scale}
       x={viewport.x}

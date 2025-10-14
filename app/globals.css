@@ -29,6 +29,7 @@ body {
 }
 
 /* PR #4 - Canvas styling */
+/* PR #6 - Toolbar styling */
 
 /* Canvas page layout */
 .canvas-page {
@@ -45,27 +46,33 @@ body {
 
 /* Canvas container - full viewport */
 .canvas-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   background: #f9fafb;
   overflow: hidden;
   cursor: default;
 }
 
+/* Stage wrapper - positioned below toolbar */
+.canvas-stage-wrapper {
+  position: absolute;
+  top: 64px; /* Height of toolbar */
+  left: 0;
+  width: 100%;
+  height: calc(100% - 64px);
+  overflow: hidden;
+}
+
 /* Canvas info overlay (viewport debug) */
 .canvas-info {
-  position: absolute;
-  top: 16px;
+  position: fixed;
+  top: 80px; /* Below toolbar */
   right: 16px;
   z-index: 100;
   pointer-events: none;
-}
-
-/* Ensure Konva container fills the space */
-.canvas-container > div {
-  width: 100% !important;
-  height: 100% !important;
 }
 
 /* Loading spinner animation (already in page.tsx but defined here for consistency) */

@@ -1,15 +1,14 @@
-// TODO: PR #15 - Layer Management (Z-Index)
-// Layer control tools component
-// - "Bring Forward" button
-// - "Send Backward" button
-// - "Bring to Front" button
-// - "Send to Back" button
+"use client";
+
+// PR #15 - Layer Management (Z-Index) (Placeholder for PR #6)
+// Layer control buttons for toolbar
 
 export default function LayerTools() {
   return (
-    <div>
-      {/* TODO: Implement LayerTools component */}
+    <div className="layer-tools flex gap-2 items-center">
+      <span className="text-sm text-gray-400">
+        Layer tools coming in PR #15...
+      </span>
     </div>
   );
 }
-

@@ -1,11 +1,63 @@
-// TODO: PR #6 - Rectangle Shape Creation & Rendering
-// Generic shape wrapper component
-// - Mark as 'use client'
-// - Conditionally render Rectangle, Circle, or Text based on type
-// - Handle shape selection
-// - Handle drag to move
+"use client";
 
-export default function Shape() {
-  return null;
+// PR #6 - Rectangle Shape Creation & Rendering
+// Generic shape wrapper component
+// Conditionally renders the appropriate shape component based on type
+
+import { CanvasObject } from "@/types/canvas.types";
+import Rectangle from "./Rectangle";
+import Circle from "./Circle";
+import Text from "./Text";
+import type Konva from "konva";
+
+interface ShapeProps {
+  shape: CanvasObject;
+  isSelected?: boolean;
+  onClick?: () => void;
+  onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
 }
 
+export default function Shape({
+  shape,
+  isSelected = false,
+  onClick,
+  onDragEnd,
+}: ShapeProps) {
+  // Render the appropriate shape component based on type
+  switch (shape.type) {
+    case "rectangle":
+      return (
+        <Rectangle
+          shape={shape}
+          isSelected={isSelected}
+          onClick={onClick}
+          onDragEnd={onDragEnd}
+        />
+      );
+
+    case "circle":
+      return (
+        <Circle
+          shape={shape}
+          isSelected={isSelected}
+          onClick={onClick}
+          onDragEnd={onDragEnd}
+        />
+      );
+
+    case "text":
+      return (
+        <Text
+          shape={shape}
+          isSelected={isSelected}
+          onClick={onClick}
+          onDragEnd={onDragEnd}
+        />
+      );
+
+    default:
+      // Fallback for unknown shape types
+      console.warn(`Unknown shape type: ${shape.type}`);
+      return null;
+  }
+}

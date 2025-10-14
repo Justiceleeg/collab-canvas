@@ -1,9 +1,44 @@
-// TODO: PR #6 - Rectangle Shape Creation & Rendering
-// Rectangle shape component
-// - Render with Konva.Rect
-// - Apply transformations (rotation, etc.)
+"use client";
 
-export default function Rectangle() {
-  return null;
+// PR #6 - Rectangle Shape Creation & Rendering
+// Rectangle shape rendering with Konva.Rect
+
+import { Rect } from "react-konva";
+import { CanvasObject } from "@/types/canvas.types";
+import type Konva from "konva";
+
+interface RectangleProps {
+  shape: CanvasObject;
+  isSelected?: boolean;
+  onClick?: () => void;
+  onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
 }
 
+export default function Rectangle({
+  shape,
+  isSelected = false,
+  onClick,
+  onDragEnd,
+}: RectangleProps) {
+  return (
+    <Rect
+      id={shape.id}
+      x={shape.x}
+      y={shape.y}
+      width={shape.width}
+      height={shape.height}
+      fill={shape.color}
+      rotation={shape.rotation || 0}
+      draggable={false} // Will be enabled in PR #7 with locking
+      onClick={onClick}
+      onTap={onClick}
+      onDragEnd={onDragEnd}
+      // Visual feedback for selection (will be enhanced in PR #7)
+      stroke={isSelected ? "#0066FF" : undefined}
+      strokeWidth={isSelected ? 2 : 0}
+      // Performance optimizations
+      perfectDrawEnabled={false}
+      listening={true}
+    />
+  );
+}

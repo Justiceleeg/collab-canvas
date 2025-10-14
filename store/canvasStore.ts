@@ -1,14 +1,17 @@
 // PR #4 - Basic Canvas with Pan & Zoom
 // PR #5 - Firestore Sync Infrastructure
+// PR #6 - Rectangle Shape Creation & Rendering
 // Zustand store for canvas state
 // - Canvas state management
 // - Shape CRUD operations (local only initially)
 // - Subscribe to Firestore changes (PR #5) ✓
 // - Push local changes to Firestore (PR #5) ✓
 // - Optimistic updates ✓
+// - Shape creation helpers (PR #6) ✓
 
 import { create } from "zustand";
-import { CanvasObject, Viewport } from "@/types/canvas.types";
+import { CanvasObject, Viewport, ShapeType } from "@/types/canvas.types";
+import { getRandomColor } from "@/utils/geometry";
 
 interface CanvasStore {
   // State
@@ -49,6 +52,13 @@ interface CanvasStore {
   // Helper getters
   getObjectById: (id: string) => CanvasObject | undefined;
   getSelectedObjects: () => CanvasObject[];
+
+  // Shape creation helper (PR #6)
+  createShapeData: (
+    type: ShapeType,
+    position: { x: number; y: number },
+    userId: string
+  ) => Omit<CanvasObject, "id" | "createdAt" | "updatedAt">;
 }
 
 export const useCanvasStore = create<CanvasStore>((set, get) => ({
@@ -146,5 +156,57 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   getSelectedObjects: () => {
     const { objects, selectedIds } = get();
     return objects.filter((obj) => selectedIds.includes(obj.id));
+  },
+
+  // Shape creation helper
+  createShapeData: (type, position, userId) => {
+    // Default dimensions based on shape type
+    const getDefaultDimensions = (shapeType: ShapeType) => {
+      switch (shapeType) {
+        case "rectangle":
+          return { width: 120, height: 80 };
+        case "circle":
+          return { width: 100, height: 100 }; // Diameter
+        case "text":
+          return { width: 200, height: 40 };
+        default:
+          return { width: 100, height: 100 };
+      }
+    };
+
+    const dimensions = getDefaultDimensions(type);
+    const color = getRandomColor();
+
+    // Calculate highest zIndex to place new shape on top
+    const objects = get().objects;
+    const maxZIndex =
+      objects.length > 0
+        ? Math.max(...objects.map((obj) => obj.zIndex || 0))
+        : 0;
+
+    const baseShape = {
+      type,
+      x: position.x,
+      y: position.y,
+      width: dimensions.width,
+      height: dimensions.height,
+      rotation: 0,
+      color,
+      zIndex: maxZIndex + 1,
+      lockedBy: null,
+      lockedAt: null,
+      lastUpdatedBy: userId,
+    };
+
+    // Add type-specific properties
+    if (type === "text") {
+      return {
+        ...baseShape,
+        text: "New Text",
+        fontSize: 16,
+      };
+    }
+
+    return baseShape;
   },
 }));

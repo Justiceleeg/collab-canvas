@@ -2,20 +2,34 @@
 
 // PR #4 - Basic Canvas with Pan & Zoom
 // PR #5 - Firestore Sync Infrastructure
+// PR #6 - Rectangle Shape Creation & Rendering
 // Main canvas wrapper component
 // - Render Stage component
 // - Handle canvas events
 // - Canvas dimensions and responsiveness
 // - Loading states (PR #5)
 // - Error states (PR #5)
+// - Shape rendering (PR #6) ✓
+// - Toolbar integration (PR #6) ✓
 
 import { useCanvas } from "@/hooks/useCanvas";
 import { useFirestore } from "@/hooks/useFirestore";
 import Stage from "./Stage";
+import Shape from "./Shape";
+import Toolbar from "../Toolbar/Toolbar";
 import { Text } from "react-konva";
 
 export default function Canvas() {
-  const { dimensions, viewport, objects } = useCanvas();
+  const {
+    dimensions,
+    viewport,
+    objects,
+    selectedIds,
+    handleCanvasClick,
+    activeTool,
+    setActiveTool,
+    isCreatingShape,
+  } = useCanvas();
   const { loading, error, isConnected, retry } = useFirestore();
 
   // Loading state - show while fetching initial canvas state
@@ -65,19 +79,51 @@ export default function Canvas() {
 
   return (
     <div className="canvas-container">
-      <Stage width={dimensions.width} height={dimensions.height}>
-        {/* Placeholder for shapes - will be implemented in PR #6 */}
-        {objects.length === 0 && (
-          <Text
-            text="Canvas is ready! Pan: Space+Drag or Middle-Click • Zoom: Mouse Wheel"
-            x={50}
-            y={50}
-            fontSize={16}
-            fill="#666"
-          />
-        )}
-        {/* Future: Shape components will be rendered here */}
-      </Stage>
+      {/* Toolbar */}
+      <Toolbar selectedTool={activeTool} onToolSelect={setActiveTool} />
+
+      {/* Stage Wrapper */}
+      <div className="canvas-stage-wrapper">
+        {/* Canvas Stage */}
+        <Stage
+          width={dimensions.width}
+          height={dimensions.height}
+          onStageClick={handleCanvasClick}
+        >
+          {/* Help text when canvas is empty */}
+          {objects.length === 0 && (
+            <Text
+              text="Welcome! Click Rectangle to create shapes • Pan: Space+Drag or Middle-Click • Zoom: Mouse Wheel"
+              x={50}
+              y={50}
+              fontSize={16}
+              fill="#666"
+              listening={false}
+            />
+          )}
+
+          {/* Render all shapes */}
+          {objects.map((obj) => (
+            <Shape
+              key={obj.id}
+              shape={obj}
+              isSelected={selectedIds.includes(obj.id)}
+            />
+          ))}
+
+          {/* Creating shape indicator */}
+          {isCreatingShape && (
+            <Text
+              text="Creating shape..."
+              x={dimensions.width / 2 - 60}
+              y={20}
+              fontSize={14}
+              fill="#0066FF"
+              listening={false}
+            />
+          )}
+        </Stage>
+      </div>
 
       {/* Connection status indicator */}
       {!isConnected && (
