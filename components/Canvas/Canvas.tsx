@@ -15,6 +15,7 @@
 import { useCanvas } from "@/hooks/useCanvas";
 import { useFirestore, useFirestoreSync } from "@/hooks/useFirestore";
 import { useCursors } from "@/hooks/useCursors"; // PR #9 - Cursor tracking
+import { useLocking } from "@/hooks/useLocking"; // PR #8 - Object locking
 import Stage from "./Stage";
 import Shape from "./Shape";
 import Toolbar from "../Toolbar/Toolbar";
@@ -23,6 +24,7 @@ import { Text } from "react-konva";
 import { useCanvasStore } from "@/store/canvasStore";
 import type Konva from "konva";
 import { useAuth } from "@/hooks/useAuth";
+import { useRef } from "react";
 
 export default function Canvas() {
   const {
@@ -38,16 +40,71 @@ export default function Canvas() {
   const { loading, error, isConnected, retry } = useFirestore();
   const { updateObject } = useFirestoreSync(); // Use sync hook for Firestore updates
   const { updateCursor } = useCursors(); // PR #9 - Cursor tracking
+  const { acquireLock, releaseLock, isLocked, getLockInfo } = useLocking(); // PR #8 - Locking
   const { user } = useAuth();
   const { setSelectedIds } = useCanvasStore();
   const { getObjectById } = useCanvasStore.getState();
+  const activeLockRef = useRef<string | null>(null); // Track which object we have locked
+
+  // PR #8 - Wrapper for canvas click that releases lock when clicking empty space
+  const handleCanvasClickWithLockRelease = async (
+    e: Konva.KonvaEventObject<MouseEvent>
+  ) => {
+    // Release lock when clicking empty canvas (deselecting)
+    if (activeLockRef.current) {
+      await releaseLock(activeLockRef.current);
+      activeLockRef.current = null;
+    }
+
+    // Call original canvas click handler (for shape creation)
+    handleCanvasClick(e);
+  };
 
   const handleShapeClick = (id: string) => {
+    // PR #8 - Just visual selection, lock handled in mousedown
     setSelectedIds([id]);
   };
 
-  const handleShapeMouseDown = (id: string) => {
+  const handleShapeMouseDown = async (id: string) => {
+    // PR #8 - Acquire lock on mousedown and keep it while selected
+
+    // If switching to a different shape, release previous lock
+    if (activeLockRef.current && activeLockRef.current !== id) {
+      await releaseLock(activeLockRef.current);
+      activeLockRef.current = null;
+    }
+
     setSelectedIds([id]);
+
+    // Check if already locked by someone else
+    if (isLocked(id)) {
+      const lockInfo = getLockInfo(id);
+      console.log(`Shape locked by ${lockInfo?.lockedByName}`);
+      return; // Block interaction
+    }
+
+    // Try to acquire lock and keep it while selected
+    const result = await acquireLock(id);
+    if (result.success) {
+      activeLockRef.current = id;
+    } else {
+      console.log(
+        `Failed to acquire lock: ${result.lockedByName} is editing this shape`
+      );
+      // Lock acquisition failed - interaction will be blocked
+    }
+  };
+
+  const handleShapeDragStart = (
+    id: string,
+    e: Konva.KonvaEventObject<DragEvent>
+  ) => {
+    // PR #8 - Ensure we have lock before drag starts
+    if (isLocked(id) && activeLockRef.current !== id) {
+      e.evt.preventDefault();
+      e.evt.stopPropagation();
+      return false;
+    }
   };
 
   const handleShapeDragEnd = async (
@@ -74,6 +131,7 @@ export default function Canvas() {
       console.error("Error syncing shape position:", error);
       // The Firestore subscription will revert to the correct state
     }
+    // PR #8 - Lock is kept after drag ends (released on deselect or shape switch)
   };
 
   // PR #9 - Track cursor movement and update in Realtime Database
@@ -143,7 +201,7 @@ export default function Canvas() {
         <Stage
           width={dimensions.width}
           height={dimensions.height}
-          onStageClick={handleCanvasClick}
+          onStageClick={handleCanvasClickWithLockRelease}
         >
           {/* Help text when canvas is empty */}
           {objects.length === 0 && (
@@ -163,8 +221,11 @@ export default function Canvas() {
               key={obj.id}
               shape={obj}
               isSelected={selectedIds.includes(obj.id)}
+              isLocked={isLocked(obj.id)}
+              lockInfo={getLockInfo(obj.id)}
               onClick={() => handleShapeClick(obj.id)}
               onMouseDown={() => handleShapeMouseDown(obj.id)}
+              onDragStart={(e) => handleShapeDragStart(obj.id, e)}
               onDragEnd={(e) => handleShapeDragEnd(obj.id, e)}
             />
           ))}

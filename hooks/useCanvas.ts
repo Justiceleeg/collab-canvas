@@ -11,6 +11,7 @@ import { useCanvasStore } from "@/store/canvasStore";
 import { ShapeType } from "@/types/canvas.types";
 import { firestoreService } from "@/services/firestore.service";
 import { useAuth } from "./useAuth";
+import Konva from "konva";
 
 export function useCanvas() {
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -65,7 +66,7 @@ export function useCanvas() {
 
   // Handle canvas click for shape creation and deselection
   const handleCanvasClick = useCallback(
-    async (e: any) => {
+    async (e: Konva.KonvaEventObject<MouseEvent>) => {
       console.log("Canvas click detected", {
         activeTool,
         isCreatingShape,
@@ -86,6 +87,12 @@ export function useCanvas() {
         try {
           // Get click position relative to stage (accounting for viewport transform)
           const stage = e.target.getStage();
+          if (!stage) {
+            console.log("No stage available");
+            setIsCreatingShape(false);
+            return;
+          }
+
           const pointerPosition = stage.getPointerPosition();
 
           console.log("Pointer position:", pointerPosition);

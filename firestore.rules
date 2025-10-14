@@ -7,18 +7,15 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    // Helper function - user is the owner/locker of the object
-    function isOwnerOrUnlocked() {
-      return !resource.data.keys().hasAny(['lockedBy']) ||
-             resource.data.lockedBy == null ||
-             resource.data.lockedBy == request.auth.uid;
-    }
-    
-    // Canvas objects - authenticated users can read/write
+    // PR #8 - Canvas objects with Strategy 3 locking
+    // Security rules allow writes; application logic (transactions) handles lock validation
     match /canvasObjects/{objectId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && isOwnerOrUnlocked();
+      // Allow updates for authenticated users
+      // Lock logic is handled in application layer via transactions
+      // This allows stale lock takeover (can't check timestamps in security rules)
+      allow update: if isAuthenticated();
       allow delete: if isAuthenticated();
     }
     

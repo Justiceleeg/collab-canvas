@@ -432,10 +432,11 @@ presence system.
 
 ---
 
-### **PR #8: Object-Level Locking System** 🔒
+### **PR #8: Object-Level Locking System** 🔒 ✅
 
 **Priority:** CRITICAL (Conflict resolution)\
-**Estimated Time:** 5-6 hours
+**Estimated Time:** 5-6 hours\
+**Status:** COMPLETED
 
 #### Tasks:
 
@@ -479,10 +480,11 @@ presence system.
 
 ---
 
-### **PR #9: User Presence & Multiplayer Cursors** 👥
+### **PR #9: User Presence & Multiplayer Cursors** 👥 ✅
 
 **Priority:** HIGH (Collaboration visibility)\
-**Estimated Time:** 3-4 hours
+**Estimated Time:** 3-4 hours\
+**Status:** COMPLETED
 
 #### Tasks:
 
@@ -1087,9 +1089,9 @@ These PRs are absolutely required to pass the MVP checkpoint:
 ✅ **PR #4** - Basic Canvas with Pan & Zoom\
 ✅ **PR #5** - Firestore Sync Infrastructure\
 ✅ **PR #6** - Rectangle Shape Creation & Rendering\
-**PR #7** - Shape Selection & Movement\
-**PR #8** - Object-Level Locking (conflict resolution)\
-**PR #9** - User Presence & Multiplayer Cursors (Realtime DB)
+✅ **PR #7** - Shape Selection & Movement\
+✅ **PR #8** - Object-Level Locking (conflict resolution)\
+✅ **PR #9** - User Presence & Multiplayer Cursors (Realtime DB)
 
 **Minimum MVP requires PRs #1-9** (all CRITICAL + HIGH priority for
 collaboration)
