@@ -122,7 +122,7 @@ export default function Stage({ width, height, children }: StageProps) {
   };
 
   // Handle mouse move for panning
-  const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
+  const handleMouseMove = () => {
     if (!isPanning.current) return;
 
     const stage = stageRef.current;

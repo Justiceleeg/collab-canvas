@@ -30,9 +30,9 @@ export default function LoginForm() {
         await signInWithEmail(email, password);
       }
       router.push("/canvas");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Auth error:", err);
-      setError(err.message || "Authentication failed");
+      setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
       setLoading(false);
     }
@@ -47,9 +47,9 @@ export default function LoginForm() {
       // Force refresh to get updated display name
       setTimeout(() => refreshUser(), 100);
       router.push("/canvas");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Anonymous auth error:", err);
-      setError(err.message || "Anonymous login failed");
+      setError(err instanceof Error ? err.message : "Anonymous login failed");
     } finally {
       setLoading(false);
     }
