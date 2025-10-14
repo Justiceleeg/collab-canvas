@@ -63,7 +63,8 @@ export default function FirebaseTest() {
           setFirestoreStatus("⚠️ Firestore write succeeded but read failed");
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         setFirestoreStatus(`❌ Firestore Error: ${errorMessage}`);
       }
 
@@ -104,9 +105,10 @@ export default function FirebaseTest() {
         }
       } catch (error) {
         console.error("Realtime DB Error:", error);
-        const errorMessage = error instanceof Error 
-          ? error.message 
-          : (error as {code?: string})?.code || String(error);
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : (error as { code?: string })?.code || String(error);
         setRealtimeDbStatus(`❌ Realtime DB Error: ${errorMessage}`);
       }
     }
