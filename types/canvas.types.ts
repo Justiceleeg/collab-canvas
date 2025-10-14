@@ -1,7 +1,7 @@
-// TODO: PR #4 - Basic Canvas with Pan & Zoom
+// PR #4 - Basic Canvas with Pan & Zoom
 // Shape & canvas types
 
-export type ShapeType = 'rectangle' | 'circle' | 'text';
+export type ShapeType = "rectangle" | "circle" | "text";
 
 export interface CanvasObject {
   id: string;
@@ -22,12 +22,17 @@ export interface CanvasObject {
   createdAt: any; // Firebase Timestamp
 }
 
-export interface CanvasState {
-  objects: CanvasObject[];
-  viewport: {
-    x: number;
-    y: number;
-    scale: number;
-  };
+export interface Viewport {
+  x: number;
+  y: number;
+  scale: number;
 }
 
+export interface CanvasState {
+  objects: CanvasObject[];
+  viewport: Viewport;
+}
+
+export interface Shape extends CanvasObject {
+  // Alias for CanvasObject for component usage
+}

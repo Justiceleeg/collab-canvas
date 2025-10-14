@@ -1,12 +1,26 @@
 "use client";
 
+// PR #4 - Basic Canvas with Pan & Zoom
+// Import Canvas component dynamically (to avoid SSR issues with Konva)
+// Add canvas layout
+
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import AuthGuard from "@/components/Auth/AuthGuard";
+import dynamic from "next/dynamic";
 
-// TODO: PR #4 - Basic Canvas with Pan & Zoom
-// Import Canvas component dynamically (to avoid SSR issues with Konva)
-// Add canvas layout
+// Import Canvas dynamically to avoid SSR issues with Konva
+const Canvas = dynamic(() => import("@/components/Canvas/Canvas"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading canvas...</p>
+      </div>
+    </div>
+  ),
+});
 
 export default function CanvasPage() {
   const router = useRouter();
@@ -19,24 +33,29 @@ export default function CanvasPage() {
 
   return (
     <AuthGuard requireAuth={true}>
-      <div className="min-h-screen bg-gray-100">
-        <div className="p-8">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h1 className="text-3xl font-bold mb-4">Canvas Page</h1>
-            <p className="text-gray-600 mb-4">
-              Welcome, {user?.displayName || "User"}!
-            </p>
-            <p className="text-gray-500 mb-4">
-              Canvas implementation coming in PR #4
-            </p>
+      <div className="canvas-page">
+        {/* Top toolbar */}
+        <div className="canvas-header">
+          <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200">
+            <div className="flex items-center gap-4">
+              <h1 className="text-lg font-semibold text-gray-800">
+                Collab Canvas
+              </h1>
+              <span className="text-sm text-gray-500">
+                Welcome, {user?.displayName || "User"}
+              </span>
+            </div>
             <button
               onClick={handleSignOut}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+              className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
             >
               Sign Out
             </button>
           </div>
         </div>
+
+        {/* Canvas area */}
+        <Canvas />
       </div>
     </AuthGuard>
   );

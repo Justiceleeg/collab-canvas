@@ -23,4 +23,58 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* PR #4 - Canvas styling */
+
+/* Canvas page layout */
+.canvas-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.canvas-header {
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+/* Canvas container - full viewport */
+.canvas-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #f9fafb;
+  overflow: hidden;
+  cursor: default;
+}
+
+/* Canvas info overlay (viewport debug) */
+.canvas-info {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* Ensure Konva container fills the space */
+.canvas-container > div {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Loading spinner animation (already in page.tsx but defined here for consistency) */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
