@@ -7,4 +7,3 @@
 export const lockManager = {
   // TODO: Implement lock manager utilities
 };
-

@@ -13,13 +13,14 @@
 // - Toolbar integration (PR #6) ✓
 
 import { useCanvas } from "@/hooks/useCanvas";
-import { useFirestore } from "@/hooks/useFirestore";
+import { useFirestore, useFirestoreSync } from "@/hooks/useFirestore";
 import Stage from "./Stage";
 import Shape from "./Shape";
 import Toolbar from "../Toolbar/Toolbar";
 import { Text } from "react-konva";
 import { useCanvasStore } from "@/store/canvasStore";
 import type Konva from "konva";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Canvas() {
   const {
@@ -33,8 +34,10 @@ export default function Canvas() {
     isCreatingShape,
   } = useCanvas();
   const { loading, error, isConnected, retry } = useFirestore();
+  const { updateObject } = useFirestoreSync(); // Use sync hook for Firestore updates
+  const { user } = useAuth();
   const { setSelectedIds } = useCanvasStore();
-  const { updateObject, getObjectById } = useCanvasStore.getState();
+  const { getObjectById } = useCanvasStore.getState();
 
   const handleShapeClick = (id: string) => {
     setSelectedIds([id]);
@@ -44,10 +47,12 @@ export default function Canvas() {
     setSelectedIds([id]);
   };
 
-  const handleShapeDragEnd = (
+  const handleShapeDragEnd = async (
     id: string,
     e: Konva.KonvaEventObject<DragEvent>
   ) => {
+    if (!user) return;
+
     const node = e.target as Konva.Node & { x: () => number; y: () => number };
     let newX = node.x();
     let newY = node.y();
@@ -59,8 +64,13 @@ export default function Canvas() {
       newY = newY - radius;
     }
 
-    updateObject(id, { x: newX, y: newY });
-    // Firestore sync intentionally deferred to useFirestore hook or future PR
+    try {
+      // Update with Firestore sync - useFirestoreSync handles optimistic update + Firestore sync
+      await updateObject(id, { x: newX, y: newY });
+    } catch (error) {
+      console.error("Error syncing shape position:", error);
+      // The Firestore subscription will revert to the correct state
+    }
   };
 
   // Loading state - show while fetching initial canvas state

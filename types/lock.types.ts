@@ -10,4 +10,3 @@ export interface Lock {
 export interface LockState {
   locks: Map<string, Lock>;
 }
-

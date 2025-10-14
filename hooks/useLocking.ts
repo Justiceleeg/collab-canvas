@@ -12,4 +12,3 @@ export function useLocking() {
     isLocked: (objectId: string) => false,
   };
 }
-
