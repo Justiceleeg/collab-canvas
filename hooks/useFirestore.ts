@@ -10,6 +10,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { firestoreService } from "@/services/firestore.service";
 import { useCanvasStore } from "@/store/canvasStore";
+import { useSelectionStore } from "@/store/selectionStore"; // PR #7 - Selection cleanup
 import { CanvasObject } from "@/types/canvas.types";
 import { useAuth } from "./useAuth";
 
@@ -257,8 +258,11 @@ export function useFirestoreSync() {
       const objects = useCanvasStore.getState().objects;
       const objectToDelete = objects.find((obj) => obj.id === id);
 
-      // Optimistic update
+      // Optimistic update - remove from canvas
       removeObjectFromStore(id);
+
+      // PR #7 - Also remove from selection
+      useSelectionStore.getState().removeFromSelection(id);
 
       try {
         // Delete from Firestore (will trigger subscription update)
@@ -286,8 +290,11 @@ export function useFirestoreSync() {
       const objects = useCanvasStore.getState().objects;
       const objectsToDelete = objects.filter((obj) => ids.includes(obj.id));
 
-      // Optimistic updates
+      // Optimistic updates - remove from canvas
       ids.forEach((id) => removeObjectFromStore(id));
+
+      // PR #7 - Also remove from selection
+      ids.forEach((id) => useSelectionStore.getState().removeFromSelection(id));
 
       try {
         // Batch delete from Firestore

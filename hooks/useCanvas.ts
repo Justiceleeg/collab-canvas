@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useCanvasStore } from "@/store/canvasStore";
+import { useSelectionStore } from "@/store/selectionStore"; // PR #7 - Selection management
 import { ShapeType } from "@/types/canvas.types";
 import { firestoreService } from "@/services/firestore.service";
 import { useAuth } from "./useAuth";
@@ -18,14 +19,8 @@ export function useCanvas() {
   const [activeTool, setActiveTool] = useState<ShapeType | null>(null);
   const [isCreatingShape, setIsCreatingShape] = useState(false);
 
-  const {
-    viewport,
-    objects,
-    selectedIds,
-    createShapeData,
-    addObject,
-    clearSelection,
-  } = useCanvasStore();
+  const { viewport, objects, createShapeData, addObject } = useCanvasStore();
+  const { deselectAll } = useSelectionStore(); // PR #7 - Use selection store
   const { user } = useAuth();
 
   // Update canvas dimensions on window resize
@@ -52,7 +47,7 @@ export function useCanvas() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         // Deselect any shapes
-        clearSelection();
+        deselectAll();
         // Also exit any active tool
         if (activeTool) {
           setActiveTool(null);
@@ -62,7 +57,7 @@ export function useCanvas() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeTool, clearSelection]);
+  }, [activeTool, deselectAll]);
 
   // Handle canvas click for shape creation and deselection
   const handleCanvasClick = useCallback(
@@ -152,7 +147,7 @@ export function useCanvas() {
       } else {
         console.log("No active tool or user:", { activeTool, hasUser: !!user });
         // Clicked on empty canvas: clear selection
-        clearSelection();
+        deselectAll();
       }
     },
     [
@@ -162,7 +157,7 @@ export function useCanvas() {
       createShapeData,
       addObject,
       isCreatingShape,
-      clearSelection,
+      deselectAll,
     ]
   );
 
@@ -170,7 +165,6 @@ export function useCanvas() {
     dimensions,
     viewport,
     objects,
-    selectedIds,
     handleCanvasClick,
     activeTool,
     setActiveTool,

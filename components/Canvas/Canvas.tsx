@@ -22,6 +22,7 @@ import Toolbar from "../Toolbar/Toolbar";
 import Cursors from "./Cursors"; // PR #9 - Multiplayer cursors
 import { Text } from "react-konva";
 import { useCanvasStore } from "@/store/canvasStore";
+import { useSelectionStore } from "@/store/selectionStore"; // PR #7 - Selection management
 import type Konva from "konva";
 import { useAuth } from "@/hooks/useAuth";
 import { useRef } from "react";
@@ -31,7 +32,6 @@ export default function Canvas() {
     dimensions,
     viewport,
     objects,
-    selectedIds,
     handleCanvasClick,
     activeTool,
     setActiveTool,
@@ -42,7 +42,7 @@ export default function Canvas() {
   const { updateCursor } = useCursors(); // PR #9 - Cursor tracking
   const { acquireLock, releaseLock, isLocked, getLockInfo } = useLocking(); // PR #8 - Locking
   const { user } = useAuth();
-  const { setSelectedIds } = useCanvasStore();
+  const { selectedIds, setSelectedIds } = useSelectionStore(); // PR #7 - Selection state
   const { getObjectById } = useCanvasStore.getState();
   const activeLockRef = useRef<string | null>(null); // Track which object we have locked
 
