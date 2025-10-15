@@ -12,6 +12,7 @@ import { useSelectionStore } from "@/store/selectionStore"; // PR #7 - Selection
 import { ShapeType } from "@/types/canvas.types";
 import { firestoreService } from "@/services/firestore.service";
 import { useAuth } from "./useAuth";
+import { CANVAS } from "@/utils/constants";
 import Konva from "konva";
 
 export function useCanvas() {
@@ -26,18 +27,13 @@ export function useCanvas() {
   // Update canvas dimensions on window resize
   useEffect(() => {
     const updateDimensions = () => {
-      // Account for the toolbar height (64px)
-      const toolbarHeight = 64;
       setDimensions({
         width: window.innerWidth,
-        height: window.innerHeight - toolbarHeight,
+        height: window.innerHeight - CANVAS.TOOLBAR_HEIGHT,
       });
     };
 
-    // Set initial dimensions
     updateDimensions();
-
-    // Add resize listener
     window.addEventListener("resize", updateDimensions);
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
@@ -62,38 +58,23 @@ export function useCanvas() {
   // Handle canvas click for shape creation and deselection
   const handleCanvasClick = useCallback(
     async (e: Konva.KonvaEventObject<MouseEvent>) => {
-      console.log("Canvas click detected", {
-        activeTool,
-        isCreatingShape,
-        hasUser: !!user,
-      });
-
       // Don't create shape if we're already creating one
-      if (isCreatingShape) {
-        console.log("Already creating a shape, skipping...");
-        return;
-      }
+      if (isCreatingShape) return;
 
       // If a shape tool is selected, create a new shape
       if (activeTool && user) {
-        console.log("Creating shape with tool:", activeTool);
         setIsCreatingShape(true);
 
         try {
           // Get click position relative to stage (accounting for viewport transform)
           const stage = e.target.getStage();
           if (!stage) {
-            console.log("No stage available");
             setIsCreatingShape(false);
             return;
           }
 
           const pointerPosition = stage.getPointerPosition();
-
-          console.log("Pointer position:", pointerPosition);
-
           if (!pointerPosition) {
-            console.log("No pointer position available");
             setIsCreatingShape(false);
             return;
           }
@@ -102,17 +83,12 @@ export function useCanvas() {
           const canvasX = (pointerPosition.x - viewport.x) / viewport.scale;
           const canvasY = (pointerPosition.y - viewport.y) / viewport.scale;
 
-          console.log("Canvas coordinates:", { canvasX, canvasY });
-          console.log("Viewport:", viewport);
-
           // Create shape data
           const shapeData = createShapeData(
             activeTool,
             { x: canvasX, y: canvasY },
             user.uid
           );
-
-          console.log("Shape data created:", shapeData);
 
           // Optimistically add to local store
           const tempId = `temp-${Date.now()}`;
@@ -123,21 +99,10 @@ export function useCanvas() {
             updatedAt: new Date(),
           } as any);
 
-          console.log("Shape added to local store with temp ID:", tempId);
-
           // Save to Firestore
-          const createdShape = await firestoreService.createObject(
-            shapeData,
-            user.uid
-          );
-
-          console.log("Shape created successfully in Firestore:", createdShape);
+          await firestoreService.createObject(shapeData, user.uid);
 
           // The shape will be updated via Firestore sync hook
-          // No need to manually update the store
-
-          // Deselect tool after creating shape (optional - can be removed if you want continuous creation)
-          // setActiveTool(null);
         } catch (error) {
           console.error("Error creating shape:", error);
           // TODO: Show error toast (PR #18)
@@ -145,7 +110,6 @@ export function useCanvas() {
           setIsCreatingShape(false);
         }
       } else {
-        console.log("No active tool or user:", { activeTool, hasUser: !!user });
         // Clicked on empty canvas: clear selection
         deselectAll();
       }

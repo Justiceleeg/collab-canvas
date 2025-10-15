@@ -9,6 +9,7 @@ import { rtdb } from "@/services/firebase";
 import { ref, onValue } from "firebase/database";
 import { presenceService } from "@/services/presence.service";
 import { useAuth } from "./useAuth";
+import { TIMING } from "@/utils/constants";
 
 export interface CursorPosition {
   userId: string;
@@ -73,7 +74,7 @@ export function useCursors() {
     };
   }, [user]);
 
-  // Update cursor position with debouncing (15ms for maximum responsiveness)
+  // Update cursor position with debouncing
   const updateCursor = useCallback(
     (x: number, y: number) => {
       if (!user) return;
@@ -86,7 +87,7 @@ export function useCursors() {
         clearTimeout(debounceTimerRef.current);
       }
 
-      // Set new timer to update after 15ms
+      // Set new timer to update
       debounceTimerRef.current = setTimeout(() => {
         if (lastUpdateRef.current) {
           presenceService
@@ -99,7 +100,7 @@ export function useCursors() {
               console.error("Error updating cursor:", error);
             });
         }
-      }, 15);
+      }, TIMING.CURSOR_DEBOUNCE_MS);
     },
     [user]
   );

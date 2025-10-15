@@ -12,6 +12,7 @@
 import { create } from "zustand";
 import { CanvasObject, Viewport, ShapeType } from "@/types/canvas.types";
 import { getRandomColor } from "@/utils/geometry";
+import { SHAPES } from "@/utils/constants";
 
 interface CanvasStore {
   // State
@@ -112,21 +113,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
   // Shape creation helper
   createShapeData: (type, position, userId) => {
-    // Default dimensions based on shape type
-    const getDefaultDimensions = (shapeType: ShapeType) => {
-      switch (shapeType) {
-        case "rectangle":
-          return { width: 120, height: 80 };
-        case "circle":
-          return { width: 100, height: 100 }; // Diameter
-        case "text":
-          return { width: 100, height: 30 };
-        default:
-          return { width: 100, height: 100 };
-      }
-    };
-
-    const dimensions = getDefaultDimensions(type);
+    const dimensions =
+      SHAPES.DEFAULT_SIZES[type] || SHAPES.DEFAULT_SIZES.rectangle;
     const color = getRandomColor();
 
     // Calculate highest zIndex to place new shape on top
@@ -154,8 +142,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     if (type === "text") {
       return {
         ...baseShape,
-        text: "New Text",
-        fontSize: 16,
+        text: SHAPES.DEFAULT_TEXT,
+        fontSize: SHAPES.DEFAULT_FONT_SIZE,
       };
     }
 

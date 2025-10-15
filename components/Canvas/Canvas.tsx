@@ -15,7 +15,7 @@
 import { useCanvas } from "@/hooks/useCanvas";
 import { useFirestore, useFirestoreSync } from "@/hooks/useFirestore";
 import { useCursors } from "@/hooks/useCursors"; // PR #9 - Cursor tracking
-import { useLocking } from "@/hooks/useLocking"; // PR #8 - Object locking
+import { useActiveLock } from "@/hooks/useActiveLock"; // PR #8 - Object locking (simplified)
 import Stage from "./Stage";
 import Shape from "./Shape";
 import Toolbar from "../Toolbar/Toolbar";
@@ -27,7 +27,7 @@ import { useCanvasStore } from "@/store/canvasStore";
 import { useSelectionStore } from "@/store/selectionStore"; // PR #7 - Selection management
 import type Konva from "konva";
 import { useAuth } from "@/hooks/useAuth";
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback, useMemo } from "react";
 
 export default function Canvas() {
   const {
@@ -42,137 +42,128 @@ export default function Canvas() {
   const { loading, error, isConnected, retry } = useFirestore();
   const { updateObject } = useFirestoreSync(); // Use sync hook for Firestore updates
   const { updateCursor } = useCursors(); // PR #9 - Cursor tracking
-  const { acquireLock, releaseLock, isLocked, getLockInfo } = useLocking(); // PR #8 - Locking
+  const {
+    acquireActiveLock,
+    releaseActiveLock,
+    hasActiveLock,
+    isLocked,
+    getLockInfo,
+  } = useActiveLock(); // PR #8 - Locking
   const { user } = useAuth();
   const { selectedIds, setSelectedIds } = useSelectionStore(); // PR #7 - Selection state
   const { getObjectById } = useCanvasStore.getState();
-  const activeLockRef = useRef<string | null>(null); // Track which object we have locked
 
   // PR #11 - Text editing state
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
 
   // PR #8 - Wrapper for canvas click that releases lock when clicking empty space
-  const handleCanvasClickWithLockRelease = async (
-    e: Konva.KonvaEventObject<MouseEvent>
-  ) => {
-    // Release lock when clicking empty canvas (deselecting)
-    if (activeLockRef.current) {
-      await releaseLock(activeLockRef.current);
-      activeLockRef.current = null;
-    }
+  const handleCanvasClickWithLockRelease = useCallback(
+    async (e: Konva.KonvaEventObject<MouseEvent>) => {
+      await releaseActiveLock();
+      handleCanvasClick(e);
+    },
+    [releaseActiveLock, handleCanvasClick]
+  );
 
-    // Call original canvas click handler (for shape creation)
-    handleCanvasClick(e);
-  };
+  const handleShapeClick = useCallback(
+    (id: string) => {
+      // PR #8 - Just visual selection, lock handled in mousedown
+      setSelectedIds([id]);
+    },
+    [setSelectedIds]
+  );
 
-  const handleShapeClick = (id: string) => {
-    // PR #8 - Just visual selection, lock handled in mousedown
-    setSelectedIds([id]);
-  };
+  const handleShapeMouseDown = useCallback(
+    async (id: string) => {
+      setSelectedIds([id]);
+      await acquireActiveLock(id);
+    },
+    [setSelectedIds, acquireActiveLock]
+  );
 
-  const handleShapeMouseDown = async (id: string) => {
-    // PR #8 - Acquire lock on mousedown and keep it while selected
+  const handleShapeDragStart = useCallback(
+    (id: string, e: Konva.KonvaEventObject<DragEvent>) => {
+      // PR #8 - Ensure we have lock before drag starts
+      if (isLocked(id) && !hasActiveLock(id)) {
+        e.evt.preventDefault();
+        e.evt.stopPropagation();
+        return false;
+      }
+    },
+    [isLocked, hasActiveLock]
+  );
 
-    // If switching to a different shape, release previous lock
-    if (activeLockRef.current && activeLockRef.current !== id) {
-      await releaseLock(activeLockRef.current);
-      activeLockRef.current = null;
-    }
+  const handleShapeDragEnd = useCallback(
+    async (id: string, e: Konva.KonvaEventObject<DragEvent>) => {
+      if (!user) return;
 
-    setSelectedIds([id]);
+      const node = e.target as Konva.Node & {
+        x: () => number;
+        y: () => number;
+      };
+      let newX = node.x();
+      let newY = node.y();
 
-    // Check if already locked by someone else
-    if (isLocked(id)) {
-      const lockInfo = getLockInfo(id);
-      console.log(`Shape locked by ${lockInfo?.lockedByName}`);
-      return; // Block interaction
-    }
+      const shape = getObjectById(id);
+      if (shape?.type === "circle") {
+        const radius = (shape.width || 0) / 2;
+        newX = newX - radius;
+        newY = newY - radius;
+      }
 
-    // Try to acquire lock and keep it while selected
-    const result = await acquireLock(id);
-    if (result.success) {
-      activeLockRef.current = id;
-    } else {
-      console.log(
-        `Failed to acquire lock: ${result.lockedByName} is editing this shape`
-      );
-      // Lock acquisition failed - interaction will be blocked
-    }
-  };
-
-  const handleShapeDragStart = (
-    id: string,
-    e: Konva.KonvaEventObject<DragEvent>
-  ) => {
-    // PR #8 - Ensure we have lock before drag starts
-    if (isLocked(id) && activeLockRef.current !== id) {
-      e.evt.preventDefault();
-      e.evt.stopPropagation();
-      return false;
-    }
-  };
-
-  const handleShapeDragEnd = async (
-    id: string,
-    e: Konva.KonvaEventObject<DragEvent>
-  ) => {
-    if (!user) return;
-
-    const node = e.target as Konva.Node & { x: () => number; y: () => number };
-    let newX = node.x();
-    let newY = node.y();
-
-    const shape = getObjectById(id);
-    if (shape?.type === "circle") {
-      const radius = (shape.width || 0) / 2;
-      newX = newX - radius;
-      newY = newY - radius;
-    }
-
-    try {
-      // Update with Firestore sync - useFirestoreSync handles optimistic update + Firestore sync
-      await updateObject(id, { x: newX, y: newY });
-    } catch (error) {
-      console.error("Error syncing shape position:", error);
-      // The Firestore subscription will revert to the correct state
-    }
-    // PR #8 - Lock is kept after drag ends (released on deselect or shape switch)
-  };
+      try {
+        await updateObject(id, { x: newX, y: newY });
+      } catch (error) {
+        console.error("Error syncing shape position:", error);
+      }
+    },
+    [user, getObjectById, updateObject]
+  );
 
   // PR #9 - Track cursor movement and update in Realtime Database
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Get mouse position relative to the viewport
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // Update cursor position (debounced in useCursors hook)
-    updateCursor(x, y);
-  };
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      updateCursor(x, y);
+    },
+    [updateCursor]
+  );
 
   // PR #11 - Text editing handlers
-  const handleTextDblClick = (id: string) => {
-    // Start editing - we'll get fresh node reference when rendering TextEditor
+  const handleTextDblClick = useCallback((id: string) => {
     setEditingTextId(id);
-  };
+  }, []);
 
-  const handleTextChange = async (id: string, newText: string) => {
-    if (!user) return;
+  const handleTextChange = useCallback(
+    async (id: string, newText: string) => {
+      if (!user) return;
 
-    try {
-      // Update text in Firestore immediately
-      await updateObject(id, { text: newText });
-      console.log("Text saved:", newText);
-    } catch (error) {
-      console.error("Error updating text:", error);
-      // TODO: Show error toast (PR #18)
-    }
-  };
+      try {
+        await updateObject(id, { text: newText });
+      } catch (error) {
+        console.error("Error updating text:", error);
+        // TODO: Show error toast (PR #18)
+      }
+    },
+    [user, updateObject]
+  );
 
-  const handleTextEditClose = () => {
+  const handleTextEditClose = useCallback(() => {
     setEditingTextId(null);
-  };
+  }, []);
+
+  // Extract text node for editing (memoized to avoid recalculating)
+  const editingTextNode = useMemo(() => {
+    if (!editingTextId || !stageRef.current) return null;
+
+    const group = stageRef.current.findOne(`#${editingTextId}`) as Konva.Group;
+    if (!group) return null;
+
+    return group.findOne(".text-node") as Konva.Text;
+  }, [editingTextId, stageRef.current]);
 
   // Loading state - show while fetching initial canvas state
   if (loading) {
@@ -276,29 +267,14 @@ export default function Canvas() {
           )}
 
           {/* PR #11 - Text editor overlay */}
-          {editingTextId &&
-            stageRef.current &&
-            (() => {
-              // Get fresh node reference from stage to avoid stale data
-              const group = stageRef.current!.findOne(
-                `#${editingTextId}`
-              ) as Konva.Group;
-              if (!group) return null;
-
-              // For text shapes, find the actual text node inside the group
-              const textNode = group.findOne(".text-node") as Konva.Text;
-
-              return textNode ? (
-                <TextEditor
-                  key={editingTextId}
-                  textNode={textNode}
-                  onClose={handleTextEditClose}
-                  onChange={(newText) =>
-                    handleTextChange(editingTextId, newText)
-                  }
-                />
-              ) : null;
-            })()}
+          {editingTextNode && (
+            <TextEditor
+              key={editingTextId}
+              textNode={editingTextNode}
+              onClose={handleTextEditClose}
+              onChange={(newText) => handleTextChange(editingTextId!, newText)}
+            />
+          )}
 
           {/* Creating shape indicator */}
           {isCreatingShape && (

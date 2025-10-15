@@ -5,6 +5,7 @@
 
 import { Html } from "react-konva-utils";
 import { useEffect, useRef, useCallback, useMemo, useState } from "react";
+import { TEXT_EDITOR } from "@/utils/constants";
 import type Konva from "konva";
 
 interface TextEditorProps {
@@ -30,25 +31,23 @@ export default function TextEditor({
 
     // Calculate height based on text content
     const textHeight = textNode.height();
-    const minHeight = Math.max(textHeight, textNode.fontSize() * 1.5);
+    const minHeight = Math.max(
+      textHeight,
+      textNode.fontSize() * TEXT_EDITOR.MIN_LINE_HEIGHT_MULTIPLIER
+    );
 
     // Account for textarea padding and border to match text node wrapping
     const padding = textNode.padding();
-    const borderWidth = 1; // 1px border on each side
-    // With box-sizing: border-box, total width includes padding and border
-    // Add padding*2 + border*2 to get same content width as text node
-    const textareaWidth = textNode.width() + padding * 2 + borderWidth * 2;
+    const borderPadding = padding * 2 + TEXT_EDITOR.BORDER_WIDTH * 2;
+    const textareaWidth = textNode.width() + borderPadding;
 
     return {
       top: `${textPosition.y}px`,
       left: `${textPosition.x}px`,
       width: `${textareaWidth}px`,
-      height: `${minHeight + padding * 2 + borderWidth * 2}px`,
+      height: `${minHeight + borderPadding}px`,
       fontSize: `${textNode.fontSize()}px`,
-      paddingLeft: `${padding}px`,
-      paddingTop: `${padding}px`,
-      paddingRight: `${padding}px`,
-      paddingBottom: `${padding}px`,
+      padding: `${padding}px`,
       lineHeight: textNode.lineHeight().toString(),
       fontFamily: textNode.fontFamily(),
       textAlign: textNode.align() as React.CSSProperties["textAlign"],
@@ -96,7 +95,9 @@ export default function TextEditor({
 
     // Auto-size height
     textarea.style.height = "auto";
-    textarea.style.height = `${textarea.scrollHeight + 3}px`;
+    textarea.style.height = `${
+      textarea.scrollHeight + TEXT_EDITOR.AUTO_RESIZE_PADDING
+    }px`;
 
     // Select all text
     textarea.select();

@@ -13,6 +13,7 @@ import { useCanvasStore } from "@/store/canvasStore";
 import { useSelectionStore } from "@/store/selectionStore"; // PR #7 - Selection cleanup
 import { CanvasObject } from "@/types/canvas.types";
 import { useAuth } from "./useAuth";
+import { TIMING } from "@/utils/constants";
 
 interface UseFirestoreReturn {
   loading: boolean;
@@ -40,9 +41,12 @@ export function useFirestore(): UseFirestoreReturn {
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Exponential backoff for retries
-  const getRetryDelay = useCallback((attempt: number) => {
-    return Math.min(1000 * Math.pow(2, attempt), 30000); // Max 30 seconds
-  }, []);
+  const getRetryDelay = (attempt: number) => {
+    return Math.min(
+      TIMING.RETRY_BASE_DELAY_MS * Math.pow(2, attempt),
+      TIMING.RETRY_MAX_DELAY_MS
+    );
+  };
 
   // Setup subscription to Firestore
   const setupSubscription = useCallback(() => {
@@ -58,14 +62,11 @@ export function useFirestore(): UseFirestoreReturn {
         unsubscribeRef.current = null;
       }
 
-      console.log("Setting up Firestore subscription...");
       setError(null);
 
       // Subscribe to all canvas objects
       const unsubscribe = firestoreService.subscribeToObjects(
         (objects: CanvasObject[]) => {
-          console.log(`Received ${objects.length} objects from Firestore`);
-
           // Update local store with objects from Firestore
           setObjects(objects);
 
@@ -87,7 +88,6 @@ export function useFirestore(): UseFirestoreReturn {
 
           // Attempt to reconnect with exponential backoff
           const delay = getRetryDelay(retryCount);
-          console.log(`Will retry connection in ${delay}ms...`);
 
           retryTimeoutRef.current = setTimeout(() => {
             setRetryCount((prev) => prev + 1);
@@ -110,11 +110,10 @@ export function useFirestore(): UseFirestoreReturn {
         setupSubscription();
       }, delay);
     }
-  }, [user, setObjects, getRetryDelay, retryCount]);
+  }, [user, setObjects, retryCount]);
 
   // Manual retry function
   const retry = useCallback(() => {
-    console.log("Manual retry requested");
     setRetryCount(0);
     setLoading(true);
     isInitialLoad.current = true;
@@ -128,7 +127,6 @@ export function useFirestore(): UseFirestoreReturn {
     // Cleanup on unmount
     return () => {
       if (unsubscribeRef.current) {
-        console.log("Cleaning up Firestore subscription");
         unsubscribeRef.current();
         unsubscribeRef.current = null;
       }
@@ -141,15 +139,8 @@ export function useFirestore(): UseFirestoreReturn {
 
   // Listen for online/offline events
   useEffect(() => {
-    const handleOnline = () => {
-      console.log("Network connection restored, reconnecting to Firestore...");
-      retry();
-    };
-
-    const handleOffline = () => {
-      console.log("Network connection lost");
-      setIsConnected(false);
-    };
+    const handleOnline = () => retry();
+    const handleOffline = () => setIsConnected(false);
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
