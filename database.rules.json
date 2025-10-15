@@ -5,8 +5,11 @@
 		"presence": {
 			".read": "auth != null",
 			"$userId": {
+				".read": "auth != null",
 				".write": "auth != null && auth.uid === $userId",
-				".validate": "newData.hasChildren(['displayName', 'color', 'online'])"
+				"$field": {
+					".write": "auth != null && auth.uid === $userId"
+				}
 			}
 		},
 		"test": {

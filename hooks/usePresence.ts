@@ -21,14 +21,17 @@ export function usePresence() {
       return;
     }
 
+    let connectionCleanup: (() => void) | null = null;
+
     // Join canvas when component mounts
     const joinCanvas = async () => {
       try {
-        const color = await presenceService.joinCanvas(
+        const { color, cleanup } = await presenceService.joinCanvas(
           user.uid,
           user.displayName
         );
         setUserColor(color);
+        connectionCleanup = cleanup;
       } catch (error) {
         console.error("Error joining canvas:", error);
       }
@@ -38,7 +41,7 @@ export function usePresence() {
 
     // Subscribe to presence changes
     const presenceRef = ref(rtdb, "presence");
-    const unsubscribe = onValue(presenceRef, (snapshot) => {
+    const unsubscribePresence = onValue(presenceRef, (snapshot) => {
       const presenceData = snapshot.val();
 
       if (presenceData) {
@@ -51,14 +54,19 @@ export function usePresence() {
       }
     });
 
-    // Cleanup: leave canvas and unsubscribe
+    // Cleanup: unsubscribe from listeners
+    // Note: onDisconnect() handlers will automatically mark user as offline
     return () => {
-      presenceService.leaveCanvas(user.uid).catch((error) => {
-        console.error("Error leaving canvas:", error);
-      });
+      // Clean up connection listener
+      if (connectionCleanup) {
+        connectionCleanup();
+      }
 
       // Unsubscribe from presence listener
-      unsubscribe();
+      unsubscribePresence();
+
+      // Don't manually call leaveCanvas here - it can cause permission errors
+      // when auth state changes. The onDisconnect() handlers will take care of it.
     };
   }, [user]);
 

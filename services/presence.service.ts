@@ -1,9 +1,9 @@
 // PR #9 - User Presence & Multiplayer Cursors
 // Presence management service (Realtime Database)
 // - Write user to Realtime Database presence/{userId} path on mount
-// - Use onDisconnect().remove() for automatic cleanup
+// - Use onDisconnect() to set online: false for automatic cleanup
 // - Include user ID, display name, color, online status
-// - No need for manual heartbeat polling
+// - Monitor connection state for reliability
 
 import { rtdb } from "./firebase";
 import {
@@ -12,6 +12,8 @@ import {
   onDisconnect,
   serverTimestamp,
   remove,
+  update,
+  onValue,
 } from "firebase/database";
 import { UserPresence } from "@/types/user.types";
 
@@ -36,14 +38,20 @@ export const presenceService = {
   /**
    * Join canvas - write user presence to Realtime Database
    * Sets up automatic cleanup on disconnect
+   * Returns both the user color and a cleanup function for the connection listener
    */
-  async joinCanvas(userId: string, displayName: string): Promise<string> {
+  async joinCanvas(
+    userId: string,
+    displayName: string
+  ): Promise<{ color: string; cleanup: () => void }> {
     if (!rtdb) {
       throw new Error("Realtime Database not initialized");
     }
 
     const userColor = generateUserColor();
     const presenceRef = ref(rtdb, `presence/${userId}`);
+    const onlineRef = ref(rtdb, `presence/${userId}/online`);
+    const lastSeenRef = ref(rtdb, `presence/${userId}/lastSeen`);
 
     // Create presence data
     const presenceData: Partial<UserPresence> = {
@@ -55,17 +63,38 @@ export const presenceService = {
       lastSeen: Date.now(),
     };
 
-    // Set up automatic cleanup on disconnect
-    await onDisconnect(presenceRef).remove();
+    // Set up automatic offline status on disconnect
+    // This sets online: false instead of removing the record
+    await onDisconnect(onlineRef).set(false);
+
+    // Also update lastSeen on disconnect
+    await onDisconnect(lastSeenRef).set(Date.now());
 
     // Write presence data
     await set(presenceRef, presenceData);
 
-    return userColor;
+    // Monitor connection state for better reliability
+    const connectedRef = ref(rtdb, ".info/connected");
+    const unsubscribe = onValue(connectedRef, (snapshot) => {
+      if (snapshot.val() === true) {
+        // We're connected (or reconnected)
+        // Reset the onDisconnect handlers
+        onDisconnect(onlineRef).set(false);
+        onDisconnect(lastSeenRef).set(Date.now());
+
+        // Also re-mark as online in case we reconnected
+        set(onlineRef, true);
+      }
+    });
+
+    return {
+      color: userColor,
+      cleanup: unsubscribe,
+    };
   },
 
   /**
-   * Leave canvas - manually remove user presence
+   * Leave canvas - manually set user offline
    * (onDisconnect will also handle this automatically)
    */
   async leaveCanvas(userId: string): Promise<void> {
@@ -74,7 +103,18 @@ export const presenceService = {
     }
 
     const presenceRef = ref(rtdb, `presence/${userId}`);
-    await remove(presenceRef);
+
+    // Set online to false and update lastSeen
+    await update(presenceRef, {
+      online: false,
+      lastSeen: Date.now(),
+    });
+
+    // Cancel any pending onDisconnect operations
+    const onlineRef = ref(rtdb, `presence/${userId}/online`);
+    const lastSeenRef = ref(rtdb, `presence/${userId}/lastSeen`);
+    await onDisconnect(onlineRef).cancel();
+    await onDisconnect(lastSeenRef).cancel();
   },
 
   /**

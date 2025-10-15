@@ -76,8 +76,11 @@ export const authService = {
 
   /**
    * Sign out current user
+   * The onDisconnect() handlers will automatically mark user as offline
    */
   signOut: async (): Promise<void> => {
+    // Don't manually clean up presence - let onDisconnect() handle it
+    // This avoids permission denied errors when auth token is invalidated
     await firebaseSignOut(auth);
   },
 

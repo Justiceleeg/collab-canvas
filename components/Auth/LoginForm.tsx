@@ -6,8 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginForm() {
   const router = useRouter();
-  const { signInWithEmail, signUpWithEmail, signInAnonymously, refreshUser } =
-    useAuth();
+  const { signInWithEmail, signUpWithEmail, refreshUser } = useAuth();
 
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -33,23 +32,6 @@ export default function LoginForm() {
     } catch (err: unknown) {
       console.error("Auth error:", err);
       setError(err instanceof Error ? err.message : "Authentication failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAnonymousLogin = async () => {
-    setError(null);
-    setLoading(true);
-
-    try {
-      await signInAnonymously(displayName || `Guest_${Date.now()}`);
-      // Force refresh to get updated display name
-      setTimeout(() => refreshUser(), 100);
-      router.push("/canvas");
-    } catch (err: unknown) {
-      console.error("Anonymous auth error:", err);
-      setError(err instanceof Error ? err.message : "Anonymous login failed");
     } finally {
       setLoading(false);
     }
@@ -160,45 +142,6 @@ export default function LoginForm() {
           {loading ? "Loading..." : mode === "signin" ? "Sign In" : "Sign Up"}
         </button>
       </form>
-
-      {/* Divider */}
-      <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300"></div>
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-white text-gray-500">Or</span>
-        </div>
-      </div>
-
-      {/* Anonymous Login */}
-      <div className="space-y-4">
-        <div>
-          <label
-            htmlFor="anonymousName"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Guest Name (Optional)
-          </label>
-          <input
-            type="text"
-            id="anonymousName"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-500 focus:border-transparent text-gray-900"
-            placeholder="Guest User"
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={handleAnonymousLogin}
-          disabled={loading}
-          className="w-full py-3 px-4 bg-gray-600 text-white font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading ? "Loading..." : "Continue as Guest"}
-        </button>
-      </div>
     </div>
   );
 }
