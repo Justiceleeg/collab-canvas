@@ -50,11 +50,17 @@ export default function ShapeTools({
         <span className="text-sm">Rectangle</span>
       </button>
 
-      {/* Circle Tool - Coming in PR #10 */}
+      {/* Circle Tool - PR #10 */}
       <button
-        className="tool-button bg-gray-100 text-gray-400 px-4 py-2 rounded border border-gray-300 flex items-center gap-2 cursor-not-allowed opacity-50"
-        disabled
-        title="Circle (Coming in PR #10)"
+        className={`tool-button ${
+          selectedTool === "circle"
+            ? "bg-blue-500 text-white"
+            : "bg-white text-gray-700 hover:bg-gray-100"
+        } px-4 py-2 rounded border border-gray-300 flex items-center gap-2 transition-colors`}
+        onClick={() =>
+          onToolSelect(selectedTool === "circle" ? null : "circle")
+        }
+        title="Circle (C)"
       >
         <svg
           width="20"

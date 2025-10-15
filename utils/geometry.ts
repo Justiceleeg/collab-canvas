@@ -5,6 +5,7 @@ import { CanvasObject } from "@/types/canvas.types";
 
 /**
  * Calculate the bounding box of a shape
+ * PR #10 - Enhanced to properly handle all shape types including circles
  */
 export function getShapeBounds(shape: CanvasObject): {
   x: number;
@@ -12,6 +13,9 @@ export function getShapeBounds(shape: CanvasObject): {
   width: number;
   height: number;
 } {
+  // All shape types store their bounds as x, y, width, height
+  // For circles, width and height are equal (diameter)
+  // and x, y represent the top-left of the bounding box
   return {
     x: shape.x,
     y: shape.y,
@@ -22,11 +26,21 @@ export function getShapeBounds(shape: CanvasObject): {
 
 /**
  * Check if a point is inside a shape's bounds
+ * PR #10 - Enhanced to properly handle circle collision detection
  */
 export function isPointInShape(
   point: { x: number; y: number },
   shape: CanvasObject
 ): boolean {
+  // For circles, use radius-based collision detection
+  if (shape.type === "circle") {
+    const center = getShapeCenter(shape);
+    const radius = shape.width / 2;
+    const distance = getDistance(point, center);
+    return distance <= radius;
+  }
+
+  // For rectangles and text, use bounding box
   const bounds = getShapeBounds(shape);
 
   // Handle rotation if needed (simplified check for now)
