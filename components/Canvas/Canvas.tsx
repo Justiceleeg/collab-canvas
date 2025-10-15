@@ -21,12 +21,13 @@ import Shape from "./Shape";
 import Toolbar from "../Toolbar/Toolbar";
 import Cursors from "./Cursors"; // PR #9 - Multiplayer cursors
 import Transformer from "./Transformer"; // PR #12 - Transform controls (early implementation)
+import TextEditor from "./TextEditor"; // PR #11 - Text editing
 import { Text } from "react-konva";
 import { useCanvasStore } from "@/store/canvasStore";
 import { useSelectionStore } from "@/store/selectionStore"; // PR #7 - Selection management
 import type Konva from "konva";
 import { useAuth } from "@/hooks/useAuth";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 export default function Canvas() {
   const {
@@ -46,6 +47,10 @@ export default function Canvas() {
   const { selectedIds, setSelectedIds } = useSelectionStore(); // PR #7 - Selection state
   const { getObjectById } = useCanvasStore.getState();
   const activeLockRef = useRef<string | null>(null); // Track which object we have locked
+
+  // PR #11 - Text editing state
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const stageRef = useRef<Konva.Stage | null>(null);
 
   // PR #8 - Wrapper for canvas click that releases lock when clicking empty space
   const handleCanvasClickWithLockRelease = async (
@@ -146,6 +151,29 @@ export default function Canvas() {
     updateCursor(x, y);
   };
 
+  // PR #11 - Text editing handlers
+  const handleTextDblClick = (id: string) => {
+    // Start editing - we'll get fresh node reference when rendering TextEditor
+    setEditingTextId(id);
+  };
+
+  const handleTextChange = async (id: string, newText: string) => {
+    if (!user) return;
+
+    try {
+      // Update text in Firestore immediately
+      await updateObject(id, { text: newText });
+      console.log("Text saved:", newText);
+    } catch (error) {
+      console.error("Error updating text:", error);
+      // TODO: Show error toast (PR #18)
+    }
+  };
+
+  const handleTextEditClose = () => {
+    setEditingTextId(null);
+  };
+
   // Loading state - show while fetching initial canvas state
   if (loading) {
     return (
@@ -203,6 +231,7 @@ export default function Canvas() {
           width={dimensions.width}
           height={dimensions.height}
           onStageClick={handleCanvasClickWithLockRelease}
+          stageRef={stageRef}
         >
           {/* Help text when canvas is empty */}
           {objects.length === 0 && (
@@ -228,16 +257,48 @@ export default function Canvas() {
               onMouseDown={() => handleShapeMouseDown(obj.id)}
               onDragStart={(e) => handleShapeDragStart(obj.id, e)}
               onDragEnd={(e) => handleShapeDragEnd(obj.id, e)}
+              // PR #11 - Text editing props
+              onDblClick={
+                obj.type === "text"
+                  ? () => handleTextDblClick(obj.id)
+                  : undefined
+              }
+              isEditing={obj.id === editingTextId}
             />
           ))}
 
-          {/* PR #12 - Transformer for selected shapes */}
-          {selectedIds.length > 0 && (
+          {/* PR #12 - Transformer for selected shapes (hide when editing text) */}
+          {selectedIds.length > 0 && !editingTextId && (
             <Transformer
               selectedShapeIds={selectedIds}
               isLocked={selectedIds.some((id) => isLocked(id))}
             />
           )}
+
+          {/* PR #11 - Text editor overlay */}
+          {editingTextId &&
+            stageRef.current &&
+            (() => {
+              // Get fresh node reference from stage to avoid stale data
+              const group = stageRef.current!.findOne(
+                `#${editingTextId}`
+              ) as Konva.Group;
+              if (!group) return null;
+
+              // For text shapes, find the actual text node inside the group
+              const textNode = group.findOne(".text-node") as Konva.Text;
+
+              return textNode ? (
+                <TextEditor
+                  key={editingTextId}
+                  textNode={textNode}
+                  onClose={handleTextEditClose}
+                  onChange={(newText) =>
+                    handleTextChange(editingTextId, newText)
+                  }
+                />
+              ) : null;
+            })()}
 
           {/* Creating shape indicator */}
           {isCreatingShape && (

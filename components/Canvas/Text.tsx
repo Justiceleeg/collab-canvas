@@ -2,11 +2,13 @@
 
 // PR #11 - Text Shape Support
 // Text shape rendering with Konva.Text
+// Double-click to edit text
 
-import { Text as KonvaText } from "react-konva";
+import { Text as KonvaText, Group, Rect } from "react-konva";
 import { CanvasObject } from "@/types/canvas.types";
 import type Konva from "konva";
 import { LockInfo } from "./Shape";
+import { useRef, useEffect, useState } from "react";
 
 interface TextProps {
   shape: CanvasObject;
@@ -17,6 +19,8 @@ interface TextProps {
   onMouseDown?: () => void;
   onDragStart?: (e: Konva.KonvaEventObject<DragEvent>) => void;
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
+  onDblClick?: () => void;
+  isEditing?: boolean;
 }
 
 export default function Text({
@@ -28,43 +32,72 @@ export default function Text({
   onMouseDown,
   onDragStart,
   onDragEnd,
+  onDblClick,
+  isEditing = false,
 }: TextProps) {
-  // PR #11 - Determine stroke color based on lock status
-  // PR #12 - Remove selection stroke (Transformer handles this now)
-  const getStrokeColor = () => {
-    if (isLocked && lockInfo && !lockInfo.isOwnLock) {
-      return lockInfo.color; // User's color from presence system
+  const textRef = useRef<Konva.Text>(null);
+  const [textBounds, setTextBounds] = useState({ width: 0, height: 0 });
+
+  // Update text bounds when text changes
+  useEffect(() => {
+    if (textRef.current) {
+      const width = textRef.current.width();
+      const height = textRef.current.height();
+      setTextBounds({ width, height });
     }
-    return undefined; // No stroke (selection handled by Transformer)
-  };
+  }, [shape.text, shape.fontSize]);
+
+  // Show bounding box for locked text (not stroke)
+  const showBoundingBox = isLocked && lockInfo && !lockInfo.isOwnLock;
 
   return (
-    <KonvaText
+    <Group
       id={shape.id}
       x={shape.x}
       y={shape.y}
-      // Auto-size to content - no fixed width/height
-      text={shape.text || "Text"}
-      fontSize={shape.fontSize || 16}
-      fontFamily="Arial, sans-serif"
-      fill={shape.color}
       rotation={shape.rotation || 0}
-      draggable={!isLocked}
+      draggable={!isLocked && !isEditing}
       onClick={onClick}
       onTap={onClick}
       onMouseDown={onMouseDown}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      // Visual feedback for lock status (selection handled by Transformer)
-      stroke={getStrokeColor()}
-      strokeWidth={isLocked ? 2 : 0}
-      // Text rendering options
-      align="left"
-      padding={4}
-      wrap="none"
-      // Performance optimizations
-      perfectDrawEnabled={false}
-      listening={true}
-    />
+      onDblClick={onDblClick}
+      onDblTap={onDblClick}
+      visible={!isEditing}
+    >
+      {/* Bounding box for locked text */}
+      {showBoundingBox && textBounds.width > 0 && (
+        <Rect
+          x={0}
+          y={0}
+          width={textBounds.width}
+          height={textBounds.height}
+          stroke={lockInfo.color}
+          strokeWidth={2}
+          listening={false}
+        />
+      )}
+
+      {/* Text content */}
+      <KonvaText
+        ref={textRef}
+        name="text-node" // Add name for easier finding
+        x={0}
+        y={0}
+        // Auto-size to content - no fixed width/height
+        text={shape.text || "New Text"}
+        fontSize={shape.fontSize || 16}
+        fontFamily="Arial, sans-serif"
+        fill={shape.color}
+        // Text rendering options
+        align="left"
+        padding={4}
+        wrap="none"
+        // Performance optimizations
+        perfectDrawEnabled={false}
+        listening={true}
+      />
+    </Group>
   );
 }

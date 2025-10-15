@@ -16,6 +16,7 @@ interface StageProps {
   height: number;
   children?: React.ReactNode;
   onStageClick?: (e: Konva.KonvaEventObject<MouseEvent>) => void;
+  stageRef?: React.RefObject<Konva.Stage | null>;
 }
 
 export default function Stage({
@@ -23,8 +24,10 @@ export default function Stage({
   height,
   children,
   onStageClick,
+  stageRef: externalStageRef,
 }: StageProps) {
-  const stageRef = useRef<Konva.Stage>(null);
+  const internalStageRef = useRef<Konva.Stage>(null);
+  const stageRef = externalStageRef || internalStageRef;
   const { viewport, updateViewport } = useCanvasStore();
 
   const isPanning = useRef(false);

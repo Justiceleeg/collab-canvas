@@ -28,6 +28,8 @@ export interface ShapeProps {
   onMouseDown?: () => void;
   onDragStart?: (e: Konva.KonvaEventObject<DragEvent>) => void; // PR #8
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
+  onDblClick?: () => void; // PR #11 - Text editing
+  isEditing?: boolean; // PR #11 - Text editing state
 }
 
 export default function Shape({
@@ -39,6 +41,8 @@ export default function Shape({
   onMouseDown,
   onDragStart,
   onDragEnd,
+  onDblClick,
+  isEditing,
 }: ShapeProps) {
   // Render the appropriate shape component based on type
   switch (shape.type) {
@@ -81,6 +85,8 @@ export default function Shape({
           onMouseDown={onMouseDown}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
+          onDblClick={onDblClick}
+          isEditing={isEditing}
         />
       );
 
