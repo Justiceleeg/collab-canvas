@@ -14,6 +14,22 @@ interface TextEditorProps {
   onChange: (newText: string) => void;
 }
 
+// Static styles that don't change
+const TEXTAREA_STATIC_STYLES: React.CSSProperties = {
+  position: "absolute",
+  minHeight: "1em",
+  border: "1px solid #0066FF",
+  margin: "0px",
+  overflow: "hidden",
+  background: "none",
+  outline: "none",
+  resize: "none",
+  transformOrigin: "left top",
+  cursor: "text",
+  caretColor: "#000000",
+  boxSizing: "border-box",
+};
+
 export default function TextEditor({
   textNode,
   onClose,
@@ -25,34 +41,49 @@ export default function TextEditor({
 
   // Compute dynamic styles from textNode
   const dynamicStyles = useMemo(() => {
-    const textPosition = textNode.absolutePosition();
     const fill = textNode.fill();
     const rotation = textNode.rotation();
 
-    // Calculate height based on text content
-    const textHeight = textNode.height();
-    const minHeight = Math.max(
-      textHeight,
-      textNode.fontSize() * TEXT_EDITOR.MIN_LINE_HEIGHT_MULTIPLIER
-    );
+    // Get stage and its transformations (zoom/pan)
+    const stage = textNode.getStage();
+    if (!stage) {
+      return {};
+    }
 
-    // Account for textarea padding and border to match text node wrapping
+    // Get text node's parent group position
+    // Html component is positioned within the stage's coordinate system
+    // The text node is at (0,0) within its group, so use the group's position
+    const parentGroup = textNode.getParent();
+    const groupPosition = parentGroup?.position() || { x: 0, y: 0 };
+
+    const screenX = groupPosition.x;
+    const screenY = groupPosition.y;
+
+    // Use unscaled dimensions - the stage will apply scaling automatically
     const padding = textNode.padding();
-    const borderPadding = padding * 2 + TEXT_EDITOR.BORDER_WIDTH * 2;
-    const textareaWidth = textNode.width() + borderPadding;
+    const fontSize = textNode.fontSize();
+
+    // Add extra width to account for textarea border and padding to prevent wrapping
+    const borderWidth = TEXT_EDITOR.BORDER_WIDTH * 2;
+    const extraPadding = padding * 2;
+    const textareaWidth = textNode.width() + extraPadding + borderWidth;
+    const textareaHeight = textNode.height() + extraPadding + borderWidth;
 
     return {
-      top: `${textPosition.y}px`,
-      left: `${textPosition.x}px`,
-      width: `${textareaWidth}px`,
-      height: `${minHeight + borderPadding}px`,
-      fontSize: `${textNode.fontSize()}px`,
-      padding: `${padding}px`,
-      lineHeight: textNode.lineHeight().toString(),
-      fontFamily: textNode.fontFamily(),
-      textAlign: textNode.align() as React.CSSProperties["textAlign"],
-      color: typeof fill === "string" ? fill : "#000000",
-      transform: rotation ? `rotateZ(${rotation}deg)` : undefined,
+      styles: {
+        top: `${screenY}px`,
+        left: `${screenX}px`,
+        width: `${textareaWidth}px`,
+        height: `${textareaHeight}px`,
+        fontSize: `${fontSize}px`,
+        padding: `${padding}px`,
+        lineHeight: textNode.lineHeight().toString(),
+        fontFamily: textNode.fontFamily(),
+        textAlign: textNode.align() as React.CSSProperties["textAlign"],
+        color: typeof fill === "string" ? fill : "#000000",
+        transform: rotation ? `rotateZ(${rotation}deg)` : undefined,
+      },
+      calculatedWidth: textareaWidth,
     };
   }, [textNode]);
 
@@ -82,11 +113,12 @@ export default function TextEditor({
   const handleInput = useCallback(() => {
     if (!textareaRef.current) return;
     const textarea = textareaRef.current;
-    const scale = textNode.getAbsoluteScale().x;
-    textarea.style.width = `${textNode.width() * scale}px`;
+
+    // Use the pre-calculated width to maintain consistency
+    textarea.style.width = `${dynamicStyles.calculatedWidth}px`;
     textarea.style.height = "auto";
-    textarea.style.height = `${textarea.scrollHeight + textNode.fontSize()}px`;
-  }, [textNode]);
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [dynamicStyles.calculatedWidth]);
 
   // Handle focus - select all text and auto-size
   const handleFocus = useCallback(() => {
@@ -136,21 +168,8 @@ export default function TextEditor({
         onKeyDown={handleKeyDown}
         onInput={handleInput}
         style={{
-          // Static styles
-          position: "absolute",
-          minHeight: "1em",
-          border: "1px solid #0066FF",
-          margin: "0px",
-          overflow: "hidden",
-          background: "none",
-          outline: "none",
-          resize: "none",
-          transformOrigin: "left top",
-          cursor: "text",
-          caretColor: "#000000",
-          boxSizing: "border-box",
-          // Dynamic styles from textNode
-          ...dynamicStyles,
+          ...TEXTAREA_STATIC_STYLES,
+          ...dynamicStyles.styles,
         }}
       />
     </Html>
