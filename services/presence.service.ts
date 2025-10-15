@@ -95,26 +95,31 @@ export const presenceService = {
 
   /**
    * Leave canvas - manually set user offline
-   * (onDisconnect will also handle this automatically)
+   * Must be called BEFORE sign out while user still has auth
    */
   async leaveCanvas(userId: string): Promise<void> {
     if (!rtdb) {
-      throw new Error("Realtime Database not initialized");
+      return;
     }
 
     const presenceRef = ref(rtdb, `presence/${userId}`);
 
-    // Set online to false and update lastSeen
-    await update(presenceRef, {
-      online: false,
-      lastSeen: Date.now(),
-    });
+    try {
+      // Set online to false and update lastSeen
+      await update(presenceRef, {
+        online: false,
+        lastSeen: Date.now(),
+      });
 
-    // Cancel any pending onDisconnect operations
-    const onlineRef = ref(rtdb, `presence/${userId}/online`);
-    const lastSeenRef = ref(rtdb, `presence/${userId}/lastSeen`);
-    await onDisconnect(onlineRef).cancel();
-    await onDisconnect(lastSeenRef).cancel();
+      // Cancel any pending onDisconnect operations since we manually cleaned up
+      const onlineRef = ref(rtdb, `presence/${userId}/online`);
+      const lastSeenRef = ref(rtdb, `presence/${userId}/lastSeen`);
+      await onDisconnect(onlineRef).cancel();
+      await onDisconnect(lastSeenRef).cancel();
+    } catch (error) {
+      // Silently fail - onDisconnect handlers will handle it
+      console.warn("Could not manually set offline status:", error);
+    }
   },
 
   /**

@@ -8,6 +8,7 @@ import {
 } from "firebase/auth";
 import { auth } from "./firebase";
 import { User } from "@/types/user.types";
+import { presenceService } from "./presence.service";
 
 /**
  * Convert Firebase User to our User type
@@ -76,11 +77,16 @@ export const authService = {
 
   /**
    * Sign out current user
-   * The onDisconnect() handlers will automatically mark user as offline
+   * Clean up presence BEFORE signing out to avoid permission errors
    */
   signOut: async (): Promise<void> => {
-    // Don't manually clean up presence - let onDisconnect() handle it
-    // This avoids permission denied errors when auth token is invalidated
+    // IMPORTANT: Clean up presence BEFORE signing out
+    // This ensures user still has auth permissions when updating presence
+    if (auth.currentUser) {
+      await presenceService.leaveCanvas(auth.currentUser.uid);
+    }
+
+    // Now sign out
     await firebaseSignOut(auth);
   },
 

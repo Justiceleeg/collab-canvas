@@ -54,19 +54,20 @@ export function usePresence() {
       }
     });
 
-    // Cleanup: unsubscribe from listeners
-    // Note: onDisconnect() handlers will automatically mark user as offline
+    // Cleanup: unsubscribe from listeners and mark offline
     return () => {
       // Clean up connection listener
       if (connectionCleanup) {
         connectionCleanup();
       }
 
+      // Try to mark user as offline
+      // This may fail if auth is already cleared (e.g., after sign out)
+      // but it's important for other unmount scenarios
+      presenceService.leaveCanvas(user.uid);
+
       // Unsubscribe from presence listener
       unsubscribePresence();
-
-      // Don't manually call leaveCanvas here - it can cause permission errors
-      // when auth state changes. The onDisconnect() handlers will take care of it.
     };
   }, [user]);
 
