@@ -81,11 +81,15 @@ export default function ShapeTools({
         <span className="text-sm">Circle</span>
       </button>
 
-      {/* Text Tool - Coming in PR #11 */}
+      {/* Text Tool - PR #11 */}
       <button
-        className="tool-button bg-gray-100 text-gray-400 px-4 py-2 rounded border border-gray-300 flex items-center gap-2 cursor-not-allowed opacity-50"
-        disabled
-        title="Text (Coming in PR #11)"
+        className={`tool-button ${
+          selectedTool === "text"
+            ? "bg-blue-500 text-white"
+            : "bg-white text-gray-700 hover:bg-gray-100"
+        } px-4 py-2 rounded border border-gray-300 flex items-center gap-2 transition-colors`}
+        onClick={() => onToolSelect(selectedTool === "text" ? null : "text")}
+        title="Text (T)"
       >
         <svg
           width="20"

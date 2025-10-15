@@ -20,6 +20,7 @@ import Stage from "./Stage";
 import Shape from "./Shape";
 import Toolbar from "../Toolbar/Toolbar";
 import Cursors from "./Cursors"; // PR #9 - Multiplayer cursors
+import Transformer from "./Transformer"; // PR #12 - Transform controls (early implementation)
 import { Text } from "react-konva";
 import { useCanvasStore } from "@/store/canvasStore";
 import { useSelectionStore } from "@/store/selectionStore"; // PR #7 - Selection management
@@ -229,6 +230,14 @@ export default function Canvas() {
               onDragEnd={(e) => handleShapeDragEnd(obj.id, e)}
             />
           ))}
+
+          {/* PR #12 - Transformer for selected shapes */}
+          {selectedIds.length > 0 && (
+            <Transformer
+              selectedShapeIds={selectedIds}
+              isLocked={selectedIds.some((id) => isLocked(id))}
+            />
+          )}
 
           {/* Creating shape indicator */}
           {isCreatingShape && (

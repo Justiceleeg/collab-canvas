@@ -120,7 +120,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         case "circle":
           return { width: 100, height: 100 }; // Diameter
         case "text":
-          return { width: 200, height: 40 };
+          return { width: 100, height: 30 };
         default:
           return { width: 100, height: 100 };
       }

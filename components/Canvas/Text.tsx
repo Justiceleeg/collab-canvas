@@ -1,21 +1,21 @@
 "use client";
 
-// PR #11 - Text Shape Support (Placeholder for PR #6)
+// PR #11 - Text Shape Support
 // Text shape rendering with Konva.Text
 
 import { Text as KonvaText } from "react-konva";
 import { CanvasObject } from "@/types/canvas.types";
 import type Konva from "konva";
-import { LockInfo } from "./Shape"; // PR #8
+import { LockInfo } from "./Shape";
 
 interface TextProps {
   shape: CanvasObject;
   isSelected?: boolean;
-  isLocked?: boolean; // PR #8
-  lockInfo?: LockInfo | null; // PR #8
+  isLocked?: boolean;
+  lockInfo?: LockInfo | null;
   onClick?: () => void;
   onMouseDown?: () => void;
-  onDragStart?: (e: Konva.KonvaEventObject<DragEvent>) => void; // PR #8
+  onDragStart?: (e: Konva.KonvaEventObject<DragEvent>) => void;
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
 }
 
@@ -29,16 +29,13 @@ export default function Text({
   onDragStart,
   onDragEnd,
 }: TextProps) {
-  // PR #8 - Determine stroke color based on lock status
+  // PR #11 - Determine stroke color based on lock status
+  // PR #12 - Remove selection stroke (Transformer handles this now)
   const getStrokeColor = () => {
     if (isLocked && lockInfo && !lockInfo.isOwnLock) {
       return lockInfo.color; // User's color from presence system
     }
-    // Only show selection border if not locked by someone else
-    if (isSelected && !isLocked) {
-      return "#0066FF"; // Blue for selected
-    }
-    return undefined; // No stroke
+    return undefined; // No stroke (selection handled by Transformer)
   };
 
   return (
@@ -46,20 +43,25 @@ export default function Text({
       id={shape.id}
       x={shape.x}
       y={shape.y}
-      text={shape.text || "Double-click to edit"}
+      // Auto-size to content - no fixed width/height
+      text={shape.text || "Text"}
       fontSize={shape.fontSize || 16}
+      fontFamily="Arial, sans-serif"
       fill={shape.color}
-      width={shape.width}
       rotation={shape.rotation || 0}
-      draggable={!isLocked} // PR #8 - Disable drag if locked by another user
+      draggable={!isLocked}
       onClick={onClick}
       onTap={onClick}
       onMouseDown={onMouseDown}
-      onDragStart={onDragStart} // PR #8
+      onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      // Visual feedback for selection and lock status
+      // Visual feedback for lock status (selection handled by Transformer)
       stroke={getStrokeColor()}
-      strokeWidth={isSelected || isLocked ? 1 : 0}
+      strokeWidth={isLocked ? 2 : 0}
+      // Text rendering options
+      align="left"
+      padding={4}
+      wrap="none"
       // Performance optimizations
       perfectDrawEnabled={false}
       listening={true}

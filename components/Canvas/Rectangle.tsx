@@ -30,15 +30,12 @@ export default function Rectangle({
   onDragEnd,
 }: RectangleProps) {
   // PR #8 - Determine stroke color based on lock status
+  // PR #12 - Remove selection stroke (Transformer handles this now)
   const getStrokeColor = () => {
     if (isLocked && lockInfo && !lockInfo.isOwnLock) {
       return lockInfo.color; // User's color from presence system
     }
-    // Only show selection border if not locked by someone else
-    if (isSelected && !isLocked) {
-      return "#0066FF"; // Blue for selected
-    }
-    return undefined; // No stroke
+    return undefined; // No stroke (selection handled by Transformer)
   };
 
   return (
@@ -56,9 +53,9 @@ export default function Rectangle({
       onMouseDown={onMouseDown}
       onDragStart={onDragStart} // PR #8
       onDragEnd={onDragEnd}
-      // Visual feedback for selection and lock status
+      // Visual feedback for lock status (selection handled by Transformer)
       stroke={getStrokeColor()}
-      strokeWidth={isSelected || isLocked ? 2 : 0}
+      strokeWidth={isLocked ? 2 : 0}
       // Performance optimizations
       perfectDrawEnabled={false}
       listening={true}
