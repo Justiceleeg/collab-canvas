@@ -58,14 +58,13 @@ export class CanvasCommandService {
   }
 
   /**
-   * Duplicate shapes with offset
+   * Duplicate shapes on top of the original (no offset)
    */
   async duplicateShapes(shapeIds: string[]): Promise<void> {
     if (shapeIds.length === 0 || !this.userId) return;
 
     try {
       const { getObjectById } = useCanvasStore.getState();
-      const offset = 20; // Offset for duplicated shapes
 
       const newShapeIds: string[] = [];
 
@@ -73,22 +72,30 @@ export class CanvasCommandService {
         const shape = getObjectById(id);
         if (!shape) continue;
 
-        // Create duplicate with offset
-        const duplicateData = {
+        // Create duplicate at same position (on top)
+        // Build base data with only defined values (Firestore rejects undefined)
+        const duplicateData: any = {
           type: shape.type,
-          x: shape.x + offset,
-          y: shape.y + offset,
+          x: shape.x,
+          y: shape.y,
           width: shape.width,
           height: shape.height,
           rotation: shape.rotation || 0,
           color: shape.color,
           zIndex: shape.zIndex + 1,
-          text: shape.text,
-          fontSize: shape.fontSize,
           lockedBy: null,
           lockedAt: null,
           lastUpdatedBy: this.userId,
         };
+
+        // Only add text fields if they exist and are not undefined
+        // (Firestore rejects undefined values)
+        if (shape.text !== undefined && shape.text !== null) {
+          duplicateData.text = shape.text;
+        }
+        if (shape.fontSize !== undefined && shape.fontSize !== null) {
+          duplicateData.fontSize = shape.fontSize;
+        }
 
         const newShape = await firestoreService.createObject(
           duplicateData,
@@ -383,7 +390,6 @@ export class CanvasCommandService {
       }
 
       const shapes = JSON.parse(clipboardData) as CanvasObject[];
-      const offset = 20;
 
       const newShapeIds: string[] = [];
 
@@ -391,8 +397,8 @@ export class CanvasCommandService {
         const newShape = await firestoreService.createObject(
           {
             ...shape,
-            x: shape.x + offset,
-            y: shape.y + offset,
+            x: shape.x,
+            y: shape.y,
             lockedBy: null,
             lockedAt: null,
             lastUpdatedBy: this.userId,

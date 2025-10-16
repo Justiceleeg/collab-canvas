@@ -800,41 +800,49 @@ presence system.
 
 ---
 
-### **PR #16: Duplicate & Delete Operations** 🗑️📋
+### **PR #16: Duplicate & Delete Operations** 🗑️📋 ✅
 
 **Priority:** MEDIUM (Basic operations)\
-**Estimated Time:** 2-3 hours
+**Estimated Time:** 2-3 hours\
+**Status:** COMPLETED
 
 #### Tasks:
 
-1. **Implement delete**
-   - Files: `store/canvasStore.ts`
-   - Delete selected shapes from local store
-   - Delete from Firestore
+1. **Implement delete** ✅
+   - Files: `services/canvasCommands.ts`, `hooks/useKeyboardShortcuts.ts`
+   - Delete selected shapes from Firestore
    - Keyboard shortcut (Delete/Backspace key)
+   - Right-click context menu option
 
-2. **Implement duplicate**
-   - Files: `store/canvasStore.ts`
-   - Clone selected shapes with offset position
+2. **Implement duplicate** ✅
+   - Files: `services/canvasCommands.ts`, `hooks/useKeyboardShortcuts.ts`
+   - Clone selected shapes at same position (no offset, spawns on top)
    - New unique IDs
    - Write to Firestore
+   - Incremented zIndex to place on top
 
-3. **Add toolbar buttons**
-   - Files: `components/Toolbar/Toolbar.tsx`
-   - Delete button
-   - Duplicate button
+3. **Add right-click context menu** ✅
+   - Files: `components/Canvas/ContextMenu.tsx`
+   - Delete option in context menu
+   - Duplicate option in context menu
+   - Context menu appears at cursor position
+   - Works with single and multi-select
 
-4. **Add keyboard shortcuts**
-   - Files: `hooks/useCanvas.ts`
+4. **Add keyboard shortcuts** ✅
+   - Files: `hooks/useKeyboardShortcuts.ts`
    - Delete: Delete/Backspace
-   - Duplicate: Ctrl+D / Cmd+D
+   - Duplicate: Ctrl+D / Cmd+D (works cross-platform)
 
 #### Deliverable:
 
-- ✅ Delete button removes selected shapes
-- ✅ Duplicate button clones selected shapes
-- ✅ Keyboard shortcuts work
-- ✅ Operations sync across users
+- ✅ Right-click context menu with delete and duplicate options
+- ✅ Context menu positioned at cursor location
+- ✅ Delete removes selected shapes (via context menu or keyboard)
+- ✅ Duplicate clones shapes on top at same position (no offset)
+- ✅ Keyboard shortcuts work (Delete/Backspace, Cmd+D/Ctrl+D)
+- ✅ Operations sync across users in real-time
+- ✅ Toast notifications for user feedback
+- ✅ Works with both single and multi-select
 
 ---
 

@@ -99,8 +99,14 @@ export const firestoreService = {
   ): Promise<CanvasObject> {
     try {
       const objectsRef = collection(db, CANVAS_OBJECTS_COLLECTION);
+
+      // Filter out undefined values (Firestore doesn't accept them)
+      const cleanObject = Object.fromEntries(
+        Object.entries(object).filter(([_, value]) => value !== undefined)
+      );
+
       const objectData = {
-        ...object,
+        ...cleanObject,
         lastUpdatedBy: userId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -129,8 +135,14 @@ export const firestoreService = {
   ): Promise<CanvasObject> {
     try {
       const docRef = doc(db, CANVAS_OBJECTS_COLLECTION, id);
+
+      // Filter out undefined values (Firestore doesn't accept them)
+      const cleanObject = Object.fromEntries(
+        Object.entries(object).filter(([_, value]) => value !== undefined)
+      );
+
       const objectData = {
-        ...object,
+        ...cleanObject,
         lastUpdatedBy: userId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
