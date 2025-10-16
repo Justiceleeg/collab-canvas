@@ -95,6 +95,18 @@ export default function ContextMenu({ commands }: ContextMenuProps) {
           <span className="ml-auto text-xs text-gray-400">⌘C</span>
         </button>
 
+        {/* Paste */}
+        <button
+          className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
+          onClick={() => {
+            handleAction(() => commands.pasteShapes());
+          }}
+        >
+          <span className="text-lg">📋</span>
+          <span>Paste</span>
+          <span className="ml-auto text-xs text-gray-400">⌘V</span>
+        </button>
+
         <div className="border-t border-gray-200 my-1" />
 
         {/* Bring to Front */}

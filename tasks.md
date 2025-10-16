@@ -835,14 +835,17 @@ presence system.
 
 #### Deliverable:
 
-- ✅ Right-click context menu with delete and duplicate options
+- ✅ Right-click context menu with delete, duplicate, copy, and paste options
 - ✅ Context menu positioned at cursor location
 - ✅ Delete removes selected shapes (via context menu or keyboard)
 - ✅ Duplicate clones shapes on top at same position (no offset)
-- ✅ Keyboard shortcuts work (Delete/Backspace, Cmd+D/Ctrl+D)
+- ✅ Copy stores shapes in clipboard (localStorage)
+- ✅ Paste creates shapes with 20px offset for visibility
+- ✅ Keyboard shortcuts work (Delete/Backspace, Cmd+D/Ctrl+D, Cmd+C/Ctrl+C, Cmd+V/Ctrl+V)
 - ✅ Operations sync across users in real-time
 - ✅ Toast notifications for user feedback
 - ✅ Works with both single and multi-select
+- ✅ Proper error handling and edge cases (empty clipboard, undefined values)
 
 ---
 

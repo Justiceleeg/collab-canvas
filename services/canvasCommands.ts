@@ -354,32 +354,40 @@ export class CanvasCommandService {
   }
 
   /**
-   * Copy shapes to clipboard (future feature)
+   * Copy shapes to clipboard
    */
   async copyShapes(shapeIds: string[]): Promise<void> {
-    // TODO: Implement clipboard in future PR
     if (shapeIds.length === 0) return;
 
-    const { getObjectById } = useCanvasStore.getState();
-    const shapes = shapeIds
-      .map((id) => getObjectById(id))
-      .filter(Boolean) as CanvasObject[];
+    try {
+      const { getObjectById } = useCanvasStore.getState();
+      const shapes = shapeIds
+        .map((id) => getObjectById(id))
+        .filter(Boolean) as CanvasObject[];
 
-    // Store in localStorage for now
-    localStorage.setItem("clipboard", JSON.stringify(shapes));
-    useUIStore
-      .getState()
-      .showToast(
-        `Copied ${shapeIds.length} shape${shapeIds.length > 1 ? "s" : ""}`,
-        "success"
-      );
+      if (shapes.length === 0) {
+        useUIStore.getState().showToast("No shapes to copy", "info");
+        return;
+      }
+
+      // Store in localStorage
+      localStorage.setItem("clipboard", JSON.stringify(shapes));
+      useUIStore
+        .getState()
+        .showToast(
+          `Copied ${shapes.length} shape${shapes.length > 1 ? "s" : ""}`,
+          "success"
+        );
+    } catch (error) {
+      console.error("Error copying shapes:", error);
+      useUIStore.getState().showToast("Failed to copy shapes", "error");
+    }
   }
 
   /**
-   * Paste shapes from clipboard (future feature)
+   * Paste shapes from clipboard with offset
    */
   async pasteShapes(): Promise<void> {
-    // TODO: Implement clipboard in future PR
     if (!this.userId) return;
 
     try {
@@ -391,18 +399,46 @@ export class CanvasCommandService {
 
       const shapes = JSON.parse(clipboardData) as CanvasObject[];
 
+      if (!shapes || shapes.length === 0) {
+        useUIStore.getState().showToast("Nothing to paste", "info");
+        return;
+      }
+
+      const offset = 20; // Offset pasted shapes so they're visible
       const newShapeIds: string[] = [];
 
-      for (const shape of shapes) {
+      // Get max zIndex to place pasted shapes on top
+      const { objects } = useCanvasStore.getState();
+      const maxZIndex = Math.max(...objects.map((obj) => obj.zIndex || 0), 0);
+
+      for (let i = 0; i < shapes.length; i++) {
+        const shape = shapes[i];
+
+        // Build shape data, excluding undefined values
+        const pasteData: any = {
+          type: shape.type,
+          x: shape.x + offset,
+          y: shape.y + offset,
+          width: shape.width,
+          height: shape.height,
+          rotation: shape.rotation || 0,
+          color: shape.color,
+          zIndex: maxZIndex + i + 1,
+          lockedBy: null,
+          lockedAt: null,
+          lastUpdatedBy: this.userId,
+        };
+
+        // Only add text fields if they exist
+        if (shape.text !== undefined && shape.text !== null) {
+          pasteData.text = shape.text;
+        }
+        if (shape.fontSize !== undefined && shape.fontSize !== null) {
+          pasteData.fontSize = shape.fontSize;
+        }
+
         const newShape = await firestoreService.createObject(
-          {
-            ...shape,
-            x: shape.x,
-            y: shape.y,
-            lockedBy: null,
-            lockedAt: null,
-            lastUpdatedBy: this.userId,
-          },
+          pasteData,
           this.userId
         );
         newShapeIds.push(newShape.id);
