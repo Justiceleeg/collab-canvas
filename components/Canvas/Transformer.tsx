@@ -111,6 +111,9 @@ export default function Transformer({
     return null;
   }
 
+  // Disable rotation and scaling when multiple shapes are selected
+  const isMultiSelect = selectedShapeIds.length > 1;
+
   return (
     <KonvaTransformer
       ref={transformerRef}
@@ -123,18 +126,23 @@ export default function Transformer({
       anchorStrokeWidth={1}
       anchorSize={6}
       anchorCornerRadius={1}
-      // Enable resize and rotate
-      enabledAnchors={[
-        "top-left",
-        "top-center",
-        "top-right",
-        "middle-right",
-        "middle-left",
-        "bottom-left",
-        "bottom-center",
-        "bottom-right",
-      ]}
-      rotateEnabled={true}
+      // Enable resize and rotate only for single selection
+      // Multi-select: only dragging is allowed (no anchors, no rotation)
+      enabledAnchors={
+        isMultiSelect
+          ? []
+          : [
+              "top-left",
+              "top-center",
+              "top-right",
+              "middle-right",
+              "middle-left",
+              "bottom-left",
+              "bottom-center",
+              "bottom-right",
+            ]
+      }
+      rotateEnabled={!isMultiSelect}
       // Keep aspect ratio for circles (optional)
       keepRatio={false}
       // Bounding box settings
