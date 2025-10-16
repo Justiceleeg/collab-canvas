@@ -21,11 +21,17 @@ export function useLocking() {
   /**
    * Acquire lock on an object using Firestore transaction
    * Strategy 3: Only locks during active interaction
+   * PR #13 - Simplified to lock only the actively dragged/edited shape
    */
   const acquireLock = useCallback(
     async (objectId: string): Promise<LockResult> => {
       if (!user) {
         return { success: false, reason: "error" };
+      }
+
+      // PR #13 - Skip locking for temporary objects (not yet in Firestore)
+      if (objectId.startsWith("temp-")) {
+        return { success: true, reason: undefined };
       }
 
       try {
@@ -35,7 +41,8 @@ export function useLocking() {
           const objectDoc = await transaction.get(objectRef);
 
           if (!objectDoc.exists()) {
-            throw new Error("Object not found");
+            // PR #13 - Object doesn't exist (possibly deleted)
+            return { success: false, reason: "error" as const };
           }
 
           const objectData = objectDoc.data();
@@ -77,8 +84,19 @@ export function useLocking() {
         });
 
         return result;
-      } catch (error) {
-        console.error("Error acquiring lock:", error);
+      } catch (error: any) {
+        const errorMessage = (error as Error).message || "";
+
+        // Silently handle not found errors
+        if (
+          errorMessage.includes("NOT_FOUND") ||
+          errorMessage.includes("not found")
+        ) {
+          return { success: false, reason: "error" };
+        }
+
+        // Log other errors but don't block
+        console.warn("Error acquiring lock:", error);
         return { success: false, reason: "error" };
       }
     },

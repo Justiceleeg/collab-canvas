@@ -58,21 +58,16 @@ export default function Canvas() {
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
 
-  // PR #13 - Sync locks with selection changes
+  // PR #13 - Release locks when selection is fully cleared (externally, not by user click)
   useEffect(() => {
-    // When selection changes, we need to update locks accordingly
-    // This is a simple approach: release all locks and re-acquire for selected shapes
-    const syncLocksWithSelection = async () => {
-      if (selectedIds.length === 0) {
-        // No selection: release all locks
-        await releaseActiveLock();
-      }
-      // Note: We don't re-acquire locks here because they're acquired on click
-      // This just ensures locks are released when selection is cleared externally
-    };
-
-    syncLocksWithSelection();
-  }, [selectedIds, releaseActiveLock]);
+    if (selectedIds.length === 0) {
+      // No selection: release all locks
+      // This handles cases where selection is cleared programmatically
+      releaseActiveLock();
+    }
+    // Note: We intentionally don't re-acquire locks when selection changes
+    // Locks are acquired explicitly on click/drag/transform actions
+  }, [selectedIds.length, releaseActiveLock]);
 
   // PR #13 - Delete multiple selected shapes
   useEffect(() => {
@@ -157,40 +152,24 @@ export default function Canvas() {
     [setSelectedIds, acquireActiveLock, releaseActiveLock]
   );
 
-  const handleShapeMouseDown = useCallback(
-    async (id: string, shiftKey: boolean) => {
-      // PR #8 - Acquire lock on mousedown
-      // PR #13 - Don't change selection here, let onClick handle it to avoid double-firing
-      if (!shiftKey) {
-        // Only acquire lock for single selection (not during multi-select)
-        await acquireActiveLock(id);
-      }
-    },
-    [acquireActiveLock]
-  );
-
   const handleShapeDragStart = useCallback(
     async (id: string, e: Konva.KonvaEventObject<DragEvent>) => {
-      // PR #8 - Ensure we have lock before drag starts
+      // PR #8 - Prevent drag if locked by another user
       if (isLocked(id) && !hasActiveLock(id)) {
         e.evt.preventDefault();
         e.evt.stopPropagation();
         return false;
       }
 
-      // PR #13 - If dragging a selected shape that's part of a multi-selection,
-      // ensure it's in the selection
+      // PR #13 - Simplified: only lock the shape being dragged
+      // Other selected shapes will move together without individual locks
+      // This avoids transaction conflicts while still preventing concurrent edits
       if (!selectedIds.includes(id)) {
         setSelectedIds([id]);
-        await acquireActiveLock(id);
-      } else if (selectedIds.length > 1) {
-        // PR #13 - Multi-select: acquire locks for ALL selected shapes
-        const lockPromises = selectedIds.map((shapeId) =>
-          acquireActiveLock(shapeId)
-        );
-        await Promise.all(lockPromises);
-      } else {
-        // Single selection: acquire lock for this shape
+      }
+
+      // Only lock the dragged shape if we don't already have it
+      if (!hasActiveLock(id)) {
         await acquireActiveLock(id);
       }
     },
@@ -294,15 +273,13 @@ export default function Canvas() {
   // PR #12 - Transform handlers (resize & rotate)
   const handleTransformStart = useCallback(
     async (shapeIds: string[]) => {
-      // PR #13 - Acquire locks for ALL selected shapes
-      if (shapeIds.length > 0) {
-        const lockPromises = shapeIds.map((shapeId) =>
-          acquireActiveLock(shapeId)
-        );
-        await Promise.all(lockPromises);
+      // PR #13 - Simplified: only lock the first shape (the one being transformed)
+      // This avoids transaction conflicts in multi-select scenarios
+      if (shapeIds.length > 0 && !hasActiveLock(shapeIds[0])) {
+        await acquireActiveLock(shapeIds[0]);
       }
     },
-    [acquireActiveLock]
+    [acquireActiveLock, hasActiveLock]
   );
 
   const handleTransformEnd = useCallback(
@@ -454,7 +431,6 @@ export default function Canvas() {
               isLocked={isLocked(obj.id)}
               lockInfo={getLockInfo(obj.id)}
               onClick={(e) => handleShapeClick(obj.id, e.evt.shiftKey)}
-              onMouseDown={(e) => handleShapeMouseDown(obj.id, e.evt.shiftKey)}
               onDragStart={(e) => handleShapeDragStart(obj.id, e)}
               onDragEnd={(e) => handleShapeDragEnd(obj.id, e)}
               // PR #11 - Text editing props

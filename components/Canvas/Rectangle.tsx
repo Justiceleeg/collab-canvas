@@ -14,7 +14,6 @@ interface RectangleProps {
   isLocked?: boolean; // PR #8
   lockInfo?: LockInfo | null; // PR #8
   onClick?: (e: Konva.KonvaEventObject<MouseEvent>) => void; // PR #13 - Pass event
-  onMouseDown?: (e: Konva.KonvaEventObject<MouseEvent>) => void; // PR #13 - Pass event
   onDragStart?: (e: Konva.KonvaEventObject<DragEvent>) => void; // PR #8
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
 }
@@ -25,7 +24,6 @@ export default function Rectangle({
   isLocked = false,
   lockInfo,
   onClick,
-  onMouseDown,
   onDragStart,
   onDragEnd,
 }: RectangleProps) {
@@ -50,7 +48,6 @@ export default function Rectangle({
       draggable={!isLocked} // PR #8 - Disable drag if locked by another user
       onClick={onClick}
       onTap={onClick}
-      onMouseDown={onMouseDown}
       onDragStart={onDragStart} // PR #8
       onDragEnd={onDragEnd}
       // Visual feedback for lock status (selection handled by Transformer)

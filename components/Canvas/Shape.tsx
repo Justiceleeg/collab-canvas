@@ -25,7 +25,6 @@ export interface ShapeProps {
   isLocked?: boolean; // PR #8 - Is locked by another user
   lockInfo?: LockInfo | null; // PR #8 - Lock details for UI
   onClick?: (e: Konva.KonvaEventObject<MouseEvent>) => void; // PR #13 - Pass event for shift detection
-  onMouseDown?: (e: Konva.KonvaEventObject<MouseEvent>) => void; // PR #13 - Pass event for shift detection
   onDragStart?: (e: Konva.KonvaEventObject<DragEvent>) => void; // PR #8
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
   onDblClick?: () => void; // PR #11 - Text editing
@@ -38,7 +37,6 @@ export default function Shape({
   isLocked = false,
   lockInfo,
   onClick,
-  onMouseDown,
   onDragStart,
   onDragEnd,
   onDblClick,
@@ -54,7 +52,6 @@ export default function Shape({
           isLocked={isLocked}
           lockInfo={lockInfo}
           onClick={onClick}
-          onMouseDown={onMouseDown}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
         />
@@ -68,7 +65,6 @@ export default function Shape({
           isLocked={isLocked}
           lockInfo={lockInfo}
           onClick={onClick}
-          onMouseDown={onMouseDown}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
         />
@@ -82,7 +78,6 @@ export default function Shape({
           isLocked={isLocked}
           lockInfo={lockInfo}
           onClick={onClick}
-          onMouseDown={onMouseDown}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
           onDblClick={onDblClick}

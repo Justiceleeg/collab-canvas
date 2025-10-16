@@ -16,7 +16,6 @@ interface TextProps {
   isLocked?: boolean;
   lockInfo?: LockInfo | null;
   onClick?: (e: Konva.KonvaEventObject<MouseEvent>) => void; // PR #13 - Pass event
-  onMouseDown?: (e: Konva.KonvaEventObject<MouseEvent>) => void; // PR #13 - Pass event
   onDragStart?: (e: Konva.KonvaEventObject<DragEvent>) => void;
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
   onDblClick?: () => void;
@@ -29,7 +28,6 @@ export default function Text({
   isLocked = false,
   lockInfo,
   onClick,
-  onMouseDown,
   onDragStart,
   onDragEnd,
   onDblClick,
@@ -59,7 +57,6 @@ export default function Text({
       draggable={!isLocked && !isEditing}
       onClick={onClick}
       onTap={onClick}
-      onMouseDown={onMouseDown}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onDblClick={onDblClick}
