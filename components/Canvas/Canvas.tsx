@@ -120,7 +120,6 @@ export default function Canvas() {
           await releaseActiveLock();
 
           // Delete all selected shapes
-          const { removeObjects } = useCanvasStore.getState();
           const deletePromises = selectedIds.map((id) =>
             firestoreService.deleteObject(id)
           );
@@ -283,8 +282,8 @@ export default function Canvas() {
       if (!draggedShape) return;
 
       // Calculate the offset from the original position
-      let originalX = draggedShape.x;
-      let originalY = draggedShape.y;
+      const originalX = draggedShape.x;
+      const originalY = draggedShape.y;
 
       if (draggedShape.type === "circle") {
         // Ellipses use separate radii for X and Y
@@ -441,7 +440,7 @@ export default function Canvas() {
     if (!group) return null;
 
     return group.findOne(".text-node") as Konva.Text;
-  }, [editingTextId, stageRef.current]);
+  }, [editingTextId]);
 
   // Loading state - show while fetching initial canvas state
   if (loading) {

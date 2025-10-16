@@ -89,7 +89,7 @@ export default function Stage({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, []);
+  }, [stageRef]);
 
   // Handle mouse wheel for zooming
   const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
