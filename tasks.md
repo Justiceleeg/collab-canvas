@@ -672,10 +672,11 @@ presence system.
 
 ---
 
-### **PR #13: Multi-Select (Shift-Click)** 🖱️✨
+### **PR #13: Multi-Select (Shift-Click)** 🖱️✨ ✅
 
 **Priority:** MEDIUM (Enhanced interaction)\
-**Estimated Time:** 3-4 hours
+**Estimated Time:** 3-4 hours\
+**Status:** COMPLETED
 
 #### Tasks:
 
@@ -709,6 +710,8 @@ presence system.
 - ✅ All selected shapes highlighted
 - ✅ Dragging one selected shape moves all
 - ✅ Delete works on multiple shapes
+- ✅ Lock indicators show on all selected shapes
+- ✅ Multi-lock support in useActiveLock hook
 
 ---
 

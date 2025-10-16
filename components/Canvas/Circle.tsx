@@ -14,8 +14,8 @@ interface CircleProps {
   isSelected?: boolean;
   isLocked?: boolean; // PR #8
   lockInfo?: LockInfo | null; // PR #8
-  onClick?: () => void;
-  onMouseDown?: () => void;
+  onClick?: (e: Konva.KonvaEventObject<MouseEvent>) => void; // PR #13 - Pass event
+  onMouseDown?: (e: Konva.KonvaEventObject<MouseEvent>) => void; // PR #13 - Pass event
   onDragStart?: (e: Konva.KonvaEventObject<DragEvent>) => void; // PR #8
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
 }

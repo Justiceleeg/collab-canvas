@@ -94,6 +94,14 @@ export function useLocking() {
       if (!user) return false;
 
       try {
+        // PR #13 - Check if object still exists before releasing lock
+        // This prevents 400 errors when trying to release locks on deleted objects
+        const object = getObjectById(objectId);
+        if (!object) {
+          // Object no longer exists (was deleted), no need to release lock
+          return true;
+        }
+
         const objectRef = doc(db, "canvasObjects", objectId);
 
         await updateDoc(objectRef, {
@@ -103,11 +111,21 @@ export function useLocking() {
 
         return true;
       } catch (error) {
+        // Silently handle "not found" errors (object was deleted)
+        const errorMessage = (error as Error).message || "";
+        if (
+          errorMessage.includes("NOT_FOUND") ||
+          errorMessage.includes("No document")
+        ) {
+          // Object was deleted, no need to log error
+          return true;
+        }
+
         console.error("Error releasing lock:", error);
         return false;
       }
     },
-    [user]
+    [user, getObjectById]
   );
 
   /**

@@ -15,8 +15,8 @@ interface TextProps {
   isSelected?: boolean;
   isLocked?: boolean;
   lockInfo?: LockInfo | null;
-  onClick?: () => void;
-  onMouseDown?: () => void;
+  onClick?: (e: Konva.KonvaEventObject<MouseEvent>) => void; // PR #13 - Pass event
+  onMouseDown?: (e: Konva.KonvaEventObject<MouseEvent>) => void; // PR #13 - Pass event
   onDragStart?: (e: Konva.KonvaEventObject<DragEvent>) => void;
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
   onDblClick?: () => void;

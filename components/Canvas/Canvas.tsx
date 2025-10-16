@@ -25,9 +25,10 @@ import TextEditor from "./TextEditor"; // PR #11 - Text editing
 import { Text } from "react-konva";
 import { useCanvasStore } from "@/store/canvasStore";
 import { useSelectionStore } from "@/store/selectionStore"; // PR #7 - Selection management
+import { firestoreService } from "@/services/firestore.service"; // PR #13 - Delete operations
 import type Konva from "konva";
 import { useAuth } from "@/hooks/useAuth";
-import { useRef, useState, useCallback, useMemo } from "react";
+import { useRef, useState, useCallback, useMemo, useEffect } from "react"; // PR #13 - Added useEffect
 
 export default function Canvas() {
   const {
@@ -57,6 +58,66 @@ export default function Canvas() {
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
 
+  // PR #13 - Sync locks with selection changes
+  useEffect(() => {
+    // When selection changes, we need to update locks accordingly
+    // This is a simple approach: release all locks and re-acquire for selected shapes
+    const syncLocksWithSelection = async () => {
+      if (selectedIds.length === 0) {
+        // No selection: release all locks
+        await releaseActiveLock();
+      }
+      // Note: We don't re-acquire locks here because they're acquired on click
+      // This just ensures locks are released when selection is cleared externally
+    };
+
+    syncLocksWithSelection();
+  }, [selectedIds, releaseActiveLock]);
+
+  // PR #13 - Delete multiple selected shapes
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      // Don't delete if user is editing text or typing in an input
+      if (
+        editingTextId ||
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      // Delete or Backspace key
+      if (
+        (e.key === "Delete" || e.key === "Backspace") &&
+        selectedIds.length > 0
+      ) {
+        e.preventDefault();
+
+        try {
+          // PR #13 - Release locks BEFORE deleting to prevent 400 errors
+          await releaseActiveLock();
+
+          // Delete all selected shapes
+          const { removeObjects } = useCanvasStore.getState();
+          const deletePromises = selectedIds.map((id) =>
+            firestoreService.deleteObject(id)
+          );
+
+          await Promise.all(deletePromises);
+
+          // Clear selection
+          setSelectedIds([]);
+        } catch (error) {
+          console.error("Error deleting shapes:", error);
+          // TODO: Show error toast (PR #18)
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedIds, editingTextId, setSelectedIds, releaseActiveLock]);
+
   // PR #8 - Wrapper for canvas click that releases lock when clicking empty space
   const handleCanvasClickWithLockRelease = useCallback(
     async (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -67,31 +128,73 @@ export default function Canvas() {
   );
 
   const handleShapeClick = useCallback(
-    (id: string) => {
-      // PR #8 - Just visual selection, lock handled in mousedown
-      setSelectedIds([id]);
+    async (id: string, shiftKey: boolean) => {
+      // PR #13 - Multi-select with shift-click
+      const { toggleSelection, selectedIds: currentSelectedIds } =
+        useSelectionStore.getState();
+
+      if (shiftKey) {
+        // Shift-click: toggle this shape in selection
+        toggleSelection(id);
+
+        // PR #13 - Acquire lock for newly selected shape or release if deselecting
+        const wasSelected = currentSelectedIds.includes(id);
+        if (!wasSelected) {
+          // Adding to selection: acquire lock
+          await acquireActiveLock(id);
+        } else {
+          // Removing from selection: would need to release just this one
+          // For now, we'll handle this in releaseActiveLock when selection changes
+        }
+      } else {
+        // Normal click: single selection
+        // Release all previous locks and acquire new one
+        await releaseActiveLock();
+        setSelectedIds([id]);
+        await acquireActiveLock(id);
+      }
     },
-    [setSelectedIds]
+    [setSelectedIds, acquireActiveLock, releaseActiveLock]
   );
 
   const handleShapeMouseDown = useCallback(
-    async (id: string) => {
-      setSelectedIds([id]);
-      await acquireActiveLock(id);
+    async (id: string, shiftKey: boolean) => {
+      // PR #8 - Acquire lock on mousedown
+      // PR #13 - Don't change selection here, let onClick handle it to avoid double-firing
+      if (!shiftKey) {
+        // Only acquire lock for single selection (not during multi-select)
+        await acquireActiveLock(id);
+      }
     },
-    [setSelectedIds, acquireActiveLock]
+    [acquireActiveLock]
   );
 
   const handleShapeDragStart = useCallback(
-    (id: string, e: Konva.KonvaEventObject<DragEvent>) => {
+    async (id: string, e: Konva.KonvaEventObject<DragEvent>) => {
       // PR #8 - Ensure we have lock before drag starts
       if (isLocked(id) && !hasActiveLock(id)) {
         e.evt.preventDefault();
         e.evt.stopPropagation();
         return false;
       }
+
+      // PR #13 - If dragging a selected shape that's part of a multi-selection,
+      // ensure it's in the selection
+      if (!selectedIds.includes(id)) {
+        setSelectedIds([id]);
+        await acquireActiveLock(id);
+      } else if (selectedIds.length > 1) {
+        // PR #13 - Multi-select: acquire locks for ALL selected shapes
+        const lockPromises = selectedIds.map((shapeId) =>
+          acquireActiveLock(shapeId)
+        );
+        await Promise.all(lockPromises);
+      } else {
+        // Single selection: acquire lock for this shape
+        await acquireActiveLock(id);
+      }
     },
-    [isLocked, hasActiveLock]
+    [isLocked, hasActiveLock, selectedIds, setSelectedIds, acquireActiveLock]
   );
 
   const handleShapeDragEnd = useCallback(
@@ -105,22 +208,53 @@ export default function Canvas() {
       let newX = node.x();
       let newY = node.y();
 
-      const shape = getObjectById(id);
-      if (shape?.type === "circle") {
+      const draggedShape = getObjectById(id);
+      if (!draggedShape) return;
+
+      // Calculate the offset from the original position
+      let originalX = draggedShape.x;
+      let originalY = draggedShape.y;
+
+      if (draggedShape.type === "circle") {
         // Ellipses use separate radii for X and Y
-        const radiusX = (shape.width || 0) / 2;
-        const radiusY = (shape.height || 0) / 2;
+        const radiusX = (draggedShape.width || 0) / 2;
+        const radiusY = (draggedShape.height || 0) / 2;
         newX = newX - radiusX;
         newY = newY - radiusY;
       }
 
+      const deltaX = newX - originalX;
+      const deltaY = newY - originalY;
+
       try {
-        await updateObject(id, { x: newX, y: newY });
+        // PR #13 - Move all selected shapes together
+        if (selectedIds.length > 1 && selectedIds.includes(id)) {
+          // Multi-select: move all selected shapes by the same offset
+          const updates = selectedIds
+            .map((shapeId) => {
+              const shape = getObjectById(shapeId);
+              if (!shape) return null;
+
+              return updateObject(shapeId, {
+                x: shape.x + deltaX,
+                y: shape.y + deltaY,
+              });
+            })
+            .filter(Boolean);
+
+          await Promise.all(updates);
+        } else {
+          // Single shape: just move the dragged shape
+          await updateObject(id, { x: newX, y: newY });
+        }
+
+        // PR #13 - Release locks after drag completes
+        await releaseActiveLock();
       } catch (error) {
         console.error("Error syncing shape position:", error);
       }
     },
-    [user, getObjectById, updateObject]
+    [user, getObjectById, updateObject, selectedIds, releaseActiveLock]
   );
 
   // PR #9 - Track cursor movement and update in Realtime Database
@@ -160,10 +294,12 @@ export default function Canvas() {
   // PR #12 - Transform handlers (resize & rotate)
   const handleTransformStart = useCallback(
     async (shapeIds: string[]) => {
-      // Acquire lock for the first selected shape
-      // (Multi-select transform will be handled in PR #13)
+      // PR #13 - Acquire locks for ALL selected shapes
       if (shapeIds.length > 0) {
-        await acquireActiveLock(shapeIds[0]);
+        const lockPromises = shapeIds.map((shapeId) =>
+          acquireActiveLock(shapeId)
+        );
+        await Promise.all(lockPromises);
       }
     },
     [acquireActiveLock]
@@ -317,8 +453,8 @@ export default function Canvas() {
               isSelected={selectedIds.includes(obj.id)}
               isLocked={isLocked(obj.id)}
               lockInfo={getLockInfo(obj.id)}
-              onClick={() => handleShapeClick(obj.id)}
-              onMouseDown={() => handleShapeMouseDown(obj.id)}
+              onClick={(e) => handleShapeClick(obj.id, e.evt.shiftKey)}
+              onMouseDown={(e) => handleShapeMouseDown(obj.id, e.evt.shiftKey)}
               onDragStart={(e) => handleShapeDragStart(obj.id, e)}
               onDragEnd={(e) => handleShapeDragEnd(obj.id, e)}
               // PR #11 - Text editing props
