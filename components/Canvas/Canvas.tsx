@@ -27,6 +27,7 @@ import { useCanvasStore } from "@/store/canvasStore";
 import { useSelectionStore } from "@/store/selectionStore"; // PR #7 - Selection management
 import { firestoreService } from "@/services/firestore.service"; // PR #13 - Delete operations
 import type Konva from "konva";
+import KonvaLib from "konva"; // PR #14 - Import Konva for utilities
 import { useAuth } from "@/hooks/useAuth";
 import { useRef, useState, useCallback, useMemo, useEffect } from "react"; // PR #13 - Added useEffect
 
@@ -57,6 +58,32 @@ export default function Canvas() {
   // PR #11 - Text editing state
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
+
+  // PR #14 - Track shift key for additive selection
+  const shiftKeyPressed = useRef(false);
+
+  // PR #14 - Track shift key for additive selection
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Shift") {
+        shiftKeyPressed.current = true;
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Shift") {
+        shiftKeyPressed.current = false;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
 
   // PR #13 - Release locks when selection is fully cleared (externally, not by user click)
   useEffect(() => {
@@ -112,6 +139,71 @@ export default function Canvas() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedIds, editingTextId, setSelectedIds, releaseActiveLock]);
+
+  // PR #14 - Handle selection box change (drag-to-select)
+  const handleSelectionBoxChange = useCallback(
+    async (
+      box: { x: number; y: number; width: number; height: number } | null
+    ) => {
+      if (box && stageRef.current) {
+        // Find all shape nodes on the stage
+        const stage = stageRef.current;
+
+        // Get all shape nodes and check intersection using Konva's utilities
+        const shapeIdsInBox = objects
+          .filter((obj) => {
+            // Find the actual Konva node for this shape
+            const node = stage.findOne(`#${obj.id}`);
+            if (!node) return false;
+
+            // Use Konva's built-in getClientRect() to get actual bounding box
+            // This accounts for rotation, scale, and all transformations
+            // Note: For rotated shapes, this returns an axis-aligned bounding box (AABB)
+            // which includes the rotated shape. This is the standard approach.
+            const nodeBox = node.getClientRect();
+
+            // Use Konva.Util.haveIntersection for accurate intersection detection
+            const intersects = KonvaLib.Util.haveIntersection(box, nodeBox);
+
+            return intersects;
+          })
+          .map((obj) => obj.id);
+
+        if (shiftKeyPressed.current) {
+          // PR #14 - Additive selection: add shapes to existing selection
+          const newSelectedIds = [
+            ...new Set([...selectedIds, ...shapeIdsInBox]),
+          ];
+          setSelectedIds(newSelectedIds);
+
+          // Acquire locks for newly selected shapes
+          for (const id of shapeIdsInBox) {
+            if (!selectedIds.includes(id)) {
+              await acquireActiveLock(id);
+            }
+          }
+        } else {
+          // PR #14 - Replace selection
+          await releaseActiveLock();
+          setSelectedIds(shapeIdsInBox);
+
+          // Acquire locks for all selected shapes
+          if (shapeIdsInBox.length > 0) {
+            // For simplicity, only lock the first shape to avoid transaction conflicts
+            await acquireActiveLock(shapeIdsInBox[0]);
+          }
+        }
+      }
+    },
+    [
+      objects,
+      selectedIds,
+      setSelectedIds,
+      acquireActiveLock,
+      releaseActiveLock,
+      stageRef,
+    ]
+  );
 
   // PR #8 - Wrapper for canvas click that releases lock when clicking empty space
   const handleCanvasClickWithLockRelease = useCallback(
@@ -409,11 +501,12 @@ export default function Canvas() {
           height={dimensions.height}
           onStageClick={handleCanvasClickWithLockRelease}
           stageRef={stageRef}
+          onSelectionBoxChange={handleSelectionBoxChange}
         >
           {/* Help text when canvas is empty */}
           {objects.length === 0 && (
             <Text
-              text="Welcome! Click Rectangle to create shapes • Pan: Space+Drag or Middle-Click • Zoom: Mouse Wheel"
+              text="Welcome! Click Rectangle to create shapes • Drag to select • Shift+Click for multi-select • Pan: Space+Drag • Zoom: Mouse Wheel"
               x={50}
               y={50}
               fontSize={16}

@@ -107,6 +107,9 @@ export function isShapeInSelectionBox(
   const boxWidth = Math.abs(selectionBox.width);
   const boxHeight = Math.abs(selectionBox.height);
 
+  // Check for intersection using axis-aligned bounding boxes
+  // Note: This doesn't account for rotation - rotated shapes will use their AABB
+  // For proper rotation support, use Konva's getClientRect() on the actual node
   return !(
     shapeBounds.x + shapeBounds.width < boxX ||
     boxX + boxWidth < shapeBounds.x ||

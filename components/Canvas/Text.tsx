@@ -45,8 +45,34 @@ export default function Text({
     }
   }, [shape.text, shape.fontSize]);
 
-  // Show bounding box for locked text (not stroke)
-  const showBoundingBox = isLocked && lockInfo && !lockInfo.isOwnLock;
+  // PR #14 - Show bounding box for locked or selected text
+  const showBoundingBox =
+    (isLocked && lockInfo && !lockInfo.isOwnLock) || isSelected;
+
+  // PR #14 - Determine bounding box color and style
+  const getBoundingBoxProps = () => {
+    // Locked by another user - show their color
+    if (isLocked && lockInfo && !lockInfo.isOwnLock) {
+      return {
+        stroke: lockInfo.color,
+        strokeWidth: 2,
+        dash: undefined,
+      };
+    }
+
+    // Selected - show blue solid border
+    if (isSelected) {
+      return {
+        stroke: "rgba(0, 102, 255, 0.8)",
+        strokeWidth: 2,
+        dash: undefined,
+      };
+    }
+
+    return null;
+  };
+
+  const boundingBoxProps = getBoundingBoxProps();
 
   return (
     <Group
@@ -63,15 +89,16 @@ export default function Text({
       onDblTap={onDblClick}
       visible={!isEditing}
     >
-      {/* Bounding box for locked text */}
-      {showBoundingBox && textBounds.width > 0 && (
+      {/* Bounding box for locked or selected text */}
+      {showBoundingBox && textBounds.width > 0 && boundingBoxProps && (
         <Rect
           x={0}
           y={0}
           width={textBounds.width}
           height={textBounds.height}
-          stroke={lockInfo.color}
-          strokeWidth={2}
+          stroke={boundingBoxProps.stroke}
+          strokeWidth={boundingBoxProps.strokeWidth}
+          dash={boundingBoxProps.dash}
           listening={false}
         />
       )}

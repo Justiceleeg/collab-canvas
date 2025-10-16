@@ -1,15 +1,18 @@
 "use client";
 
 // PR #4 - Basic Canvas with Pan & Zoom
+// PR #14 - Drag-to-Select (Selection Box)
 // Konva Stage wrapper component
 // - Konva Stage setup
 // - Pan and zoom controls (mouse wheel + drag)
 // - Viewport state management
+// - Drag-to-select functionality
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Stage as KonvaStage, Layer } from "react-konva";
 import Konva from "konva";
 import { useCanvasStore } from "@/store/canvasStore";
+import SelectionBox from "./SelectionBox";
 
 interface StageProps {
   width: number;
@@ -17,6 +20,14 @@ interface StageProps {
   children?: React.ReactNode;
   onStageClick?: (e: Konva.KonvaEventObject<MouseEvent>) => void;
   stageRef?: React.RefObject<Konva.Stage | null>;
+  onSelectionBoxChange?: (
+    box: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } | null
+  ) => void;
 }
 
 export default function Stage({
@@ -25,6 +36,7 @@ export default function Stage({
   children,
   onStageClick,
   stageRef: externalStageRef,
+  onSelectionBoxChange,
 }: StageProps) {
   const internalStageRef = useRef<Konva.Stage>(null);
   const stageRef = externalStageRef || internalStageRef;
@@ -33,6 +45,17 @@ export default function Stage({
   const isPanning = useRef(false);
   const lastPointerPosition = useRef({ x: 0, y: 0 });
   const isSpacePressed = useRef(false);
+
+  // PR #14 - Selection box state
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionStart, setSelectionStart] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Track space key for panning
   useEffect(() => {
@@ -105,7 +128,7 @@ export default function Stage({
     });
   };
 
-  // Handle mouse down for panning
+  // Handle mouse down for panning or selection
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
     // Pan with middle mouse button OR space + left click
     const isMiddleButton = e.evt.button === 1;
@@ -127,48 +150,119 @@ export default function Stage({
       if (container) {
         container.style.cursor = "grabbing";
       }
+      return;
+    }
+
+    // PR #14 - Start selection box on left click on empty canvas
+    const isLeftClick = e.evt.button === 0;
+    const clickedOnEmpty =
+      e.target === e.target.getStage() ||
+      e.target.getType() === "Stage" ||
+      e.target.getType() === "Layer";
+
+    if (isLeftClick && clickedOnEmpty && !isSpacePressed.current) {
+      const stage = stageRef.current;
+      if (!stage) return;
+
+      const pos = stage.getPointerPosition();
+      if (pos) {
+        // getPointerPosition() returns position relative to stage (screen coordinates)
+        // We need to get the relative position considering the stage's transformation
+        const pointerPos = stage.getRelativePointerPosition();
+
+        setIsSelecting(true);
+        setSelectionStart(pointerPos);
+        setSelectionEnd(pointerPos);
+      }
     }
   };
 
-  // Handle mouse move for panning
+  // Handle mouse move for panning or selection
   const handleMouseMove = () => {
-    if (!isPanning.current) return;
-
     const stage = stageRef.current;
     if (!stage) return;
 
     const pos = stage.getPointerPosition();
     if (!pos) return;
 
-    const dx = pos.x - lastPointerPosition.current.x;
-    const dy = pos.y - lastPointerPosition.current.y;
+    // Handle panning
+    if (isPanning.current) {
+      const dx = pos.x - lastPointerPosition.current.x;
+      const dy = pos.y - lastPointerPosition.current.y;
 
-    updateViewport({
-      x: viewport.x + dx,
-      y: viewport.y + dy,
-    });
+      updateViewport({
+        x: viewport.x + dx,
+        y: viewport.y + dy,
+      });
 
-    lastPointerPosition.current = pos;
+      lastPointerPosition.current = pos;
+      return;
+    }
+
+    // PR #14 - Handle selection box dragging
+    if (isSelecting && selectionStart) {
+      // getRelativePointerPosition() accounts for stage transformation
+      const pointerPos = stage.getRelativePointerPosition();
+      if (pointerPos) {
+        setSelectionEnd(pointerPos);
+      }
+    }
   };
 
-  // Handle mouse up to stop panning
+  // Handle mouse up to stop panning or finalize selection
   const handleMouseUp = () => {
-    isPanning.current = false;
+    // Stop panning
+    if (isPanning.current) {
+      isPanning.current = false;
 
-    // Reset cursor
-    const container = stageRef.current?.container();
-    if (container) {
-      container.style.cursor = isSpacePressed.current ? "grab" : "default";
+      // Reset cursor
+      const container = stageRef.current?.container();
+      if (container) {
+        container.style.cursor = isSpacePressed.current ? "grab" : "default";
+      }
+      return;
+    }
+
+    // PR #14 - Finalize selection box
+    if (isSelecting && selectionStart && selectionEnd) {
+      // Calculate selection box dimensions
+      const box = {
+        x: Math.min(selectionStart.x, selectionEnd.x),
+        y: Math.min(selectionStart.y, selectionEnd.y),
+        width: Math.abs(selectionEnd.x - selectionStart.x),
+        height: Math.abs(selectionEnd.y - selectionStart.y),
+      };
+
+      // Only trigger selection if box has meaningful size (> 5 pixels)
+      if (box.width > 5 || box.height > 5) {
+        onSelectionBoxChange?.(box);
+      }
+
+      // PR #14 - Reset selection state in timeout
+      // This allows the click event to check if we just finished selecting
+      // and prevent it from clearing the selection
+      setTimeout(() => {
+        setIsSelecting(false);
+        setSelectionStart(null);
+        setSelectionEnd(null);
+      });
     }
   };
 
   // Handle stage click (for shape creation, etc.)
   const handleClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    console.log("Stage click event:", {
-      targetType: e.target.getType(),
-      targetName: e.target.name(),
-      isPanning: isPanning.current,
-    });
+    // PR #14 - Don't trigger click if we just finished a selection box drag
+    // Check if selection box was just used (before timeout resets it)
+    const wasSelectingWithBox =
+      isSelecting &&
+      selectionStart &&
+      selectionEnd &&
+      (Math.abs(selectionEnd.x - selectionStart.x) > 5 ||
+        Math.abs(selectionEnd.y - selectionStart.y) > 5);
+
+    if (wasSelectingWithBox) {
+      return;
+    }
 
     // Only trigger if we didn't pan and clicked on empty canvas (not on a shape)
     // Check if the target is the stage or the layer (background)
@@ -177,15 +271,21 @@ export default function Stage({
       e.target.getType() === "Stage" ||
       e.target.getType() === "Layer";
 
-    console.log("Clicked on empty?", clickedOnEmpty);
-
     if (!isPanning.current && clickedOnEmpty) {
-      console.log("Calling onStageClick handler");
       onStageClick?.(e);
-    } else {
-      console.log("Not calling onStageClick - conditions not met");
     }
   };
+
+  // Calculate selection box dimensions for rendering
+  const selectionBoxDimensions =
+    isSelecting && selectionStart && selectionEnd
+      ? {
+          x: Math.min(selectionStart.x, selectionEnd.x),
+          y: Math.min(selectionStart.y, selectionEnd.y),
+          width: Math.abs(selectionEnd.x - selectionStart.x),
+          height: Math.abs(selectionEnd.y - selectionStart.y),
+        }
+      : null;
 
   return (
     <KonvaStage
@@ -205,7 +305,19 @@ export default function Stage({
       y={viewport.y}
       draggable={false}
     >
-      <Layer>{children}</Layer>
+      <Layer>
+        {children}
+        {/* PR #14 - Render selection box during drag */}
+        {selectionBoxDimensions && (
+          <SelectionBox
+            x={selectionBoxDimensions.x}
+            y={selectionBoxDimensions.y}
+            width={selectionBoxDimensions.width}
+            height={selectionBoxDimensions.height}
+            visible={true}
+          />
+        )}
+      </Layer>
     </KonvaStage>
   );
 }

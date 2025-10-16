@@ -32,14 +32,35 @@ export default function Circle({
   const radiusX = shape.width / 2;
   const radiusY = shape.height / 2;
 
-  // PR #8 - Determine stroke color based on lock status
-  // PR #12 - Remove selection stroke (Transformer handles this now)
-  const getStrokeColor = () => {
+  // PR #8/#14 - Determine stroke color and style based on selection/lock status
+  const getStrokeProps = () => {
+    // Locked by another user - show their color
     if (isLocked && lockInfo && !lockInfo.isOwnLock) {
-      return lockInfo.color; // User's color from presence system
+      return {
+        stroke: lockInfo.color,
+        strokeWidth: 2,
+        dash: undefined,
+      };
     }
-    return undefined; // No stroke (selection handled by Transformer)
+
+    // PR #14 - Selected - show blue solid border
+    if (isSelected) {
+      return {
+        stroke: "rgba(0, 102, 255, 0.8)",
+        strokeWidth: 2,
+        dash: undefined,
+      };
+    }
+
+    // No stroke
+    return {
+      stroke: undefined,
+      strokeWidth: 0,
+      dash: undefined,
+    };
   };
+
+  const strokeProps = getStrokeProps();
 
   return (
     <KonvaEllipse
@@ -55,9 +76,10 @@ export default function Circle({
       onTap={onClick}
       onDragStart={onDragStart} // PR #8
       onDragEnd={onDragEnd} // Parent Canvas.tsx handles coordinate conversion
-      // Visual feedback for lock status (selection handled by Transformer)
-      stroke={getStrokeColor()}
-      strokeWidth={isLocked ? 2 : 0}
+      // Visual feedback for selection/lock status
+      stroke={strokeProps.stroke}
+      strokeWidth={strokeProps.strokeWidth}
+      dash={strokeProps.dash}
       // Performance optimizations
       perfectDrawEnabled={false}
       listening={true}

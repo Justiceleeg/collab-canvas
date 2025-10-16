@@ -715,30 +715,31 @@ presence system.
 
 ---
 
-### **PR #14: Drag-to-Select (Selection Box)** 📦
+### **PR #14: Drag-to-Select (Selection Box)** 📦 ✅
 
 **Priority:** MEDIUM (Enhanced interaction)\
-**Estimated Time:** 3-4 hours
+**Estimated Time:** 3-4 hours\
+**Status:** COMPLETED
 
 #### Tasks:
 
-1. **Create SelectionBox component**
+1. **Create SelectionBox component** ✅
    - Files: `components/Canvas/SelectionBox.tsx`
    - Render selection rectangle
 
-2. **Implement drag-to-select**
-   - Files: `components/Canvas/Stage.tsx`, `hooks/useCanvas.ts`
+2. **Implement drag-to-select** ✅
+   - Files: `components/Canvas/Stage.tsx`, `components/Canvas/Canvas.tsx`
    - Click and drag on canvas background
    - Draw selection box
    - Detect shapes within box bounds
 
-3. **Update selection on drag end**
-   - Files: `store/selectionStore.ts`
+3. **Update selection on drag end** ✅
+   - Files: `store/selectionStore.ts` (already had necessary methods)
    - Select all shapes intersecting box
    - Clear previous selection (unless shift held)
 
-4. **Add intersection detection**
-   - Files: `utils/geometry.ts`
+4. **Add intersection detection** ✅
+   - Files: `utils/geometry.ts` (already had `isShapeInSelectionBox`)
    - Check if shape bounds intersect selection box
 
 #### Deliverable:
