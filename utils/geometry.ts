@@ -6,6 +6,7 @@ import { CanvasObject } from "@/types/canvas.types";
 /**
  * Calculate the bounding box of a shape
  * PR #10 - Enhanced to properly handle all shape types including circles
+ * PR #12.1 - Updated to handle ellipses (width and height can be different)
  */
 export function getShapeBounds(shape: CanvasObject): {
   x: number;
@@ -14,7 +15,7 @@ export function getShapeBounds(shape: CanvasObject): {
   height: number;
 } {
   // All shape types store their bounds as x, y, width, height
-  // For circles, width and height are equal (diameter)
+  // For circles/ellipses, width and height represent the diameters
   // and x, y represent the top-left of the bounding box
   return {
     x: shape.x,
@@ -27,17 +28,25 @@ export function getShapeBounds(shape: CanvasObject): {
 /**
  * Check if a point is inside a shape's bounds
  * PR #10 - Enhanced to properly handle circle collision detection
+ * PR #12.1 - Updated to handle ellipse collision detection
  */
 export function isPointInShape(
   point: { x: number; y: number },
   shape: CanvasObject
 ): boolean {
-  // For circles, use radius-based collision detection
+  // For circles/ellipses, use ellipse collision detection
   if (shape.type === "circle") {
     const center = getShapeCenter(shape);
-    const radius = shape.width / 2;
-    const distance = getDistance(point, center);
-    return distance <= radius;
+    const radiusX = shape.width / 2;
+    const radiusY = shape.height / 2;
+
+    // Ellipse equation: (x-cx)²/rx² + (y-cy)²/ry² <= 1
+    const dx = point.x - center.x;
+    const dy = point.y - center.y;
+    const normalizedDistance =
+      (dx * dx) / (radiusX * radiusX) + (dy * dy) / (radiusY * radiusY);
+
+    return normalizedDistance <= 1;
   }
 
   // For rectangles and text, use bounding box
@@ -108,14 +117,16 @@ export function isShapeInSelectionBox(
 
 /**
  * Calculate the center point of a shape
+ * PR #12.1 - Updated to handle ellipses with different width/height
  */
 export function getShapeCenter(shape: CanvasObject): { x: number; y: number } {
   if (shape.type === "circle") {
-    // For circles, the center is offset by the radius
-    const radius = shape.width / 2;
+    // For circles/ellipses, the center is offset by the radii
+    const radiusX = shape.width / 2;
+    const radiusY = shape.height / 2;
     return {
-      x: shape.x + radius,
-      y: shape.y + radius,
+      x: shape.x + radiusX,
+      y: shape.y + radiusY,
     };
   }
 

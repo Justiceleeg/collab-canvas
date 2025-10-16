@@ -107,9 +107,11 @@ export default function Canvas() {
 
       const shape = getObjectById(id);
       if (shape?.type === "circle") {
-        const radius = (shape.width || 0) / 2;
-        newX = newX - radius;
-        newY = newY - radius;
+        // Ellipses use separate radii for X and Y
+        const radiusX = (shape.width || 0) / 2;
+        const radiusY = (shape.height || 0) / 2;
+        newX = newX - radiusX;
+        newY = newY - radiusY;
       }
 
       try {
@@ -188,21 +190,22 @@ export default function Canvas() {
           const shape = getObjectById(transformed.id);
           if (!shape) continue;
 
-          // For circles, we need to handle position differently
+          // For circles/ellipses, we need to handle position differently
           let finalX = transformed.x;
           let finalY = transformed.y;
           let finalWidth = transformed.width;
           let finalHeight = transformed.height;
 
           if (shape.type === "circle") {
-            // Circles are positioned by their center in Konva
+            // Ellipses are positioned by their center in Konva
             // Convert back to top-left corner for storage
-            const radius = transformed.width / 2;
-            finalX = transformed.x - radius;
-            finalY = transformed.y - radius;
-            // Keep width and height equal for circles
+            const radiusX = transformed.width / 2;
+            const radiusY = transformed.height / 2;
+            finalX = transformed.x - radiusX;
+            finalY = transformed.y - radiusY;
+            // Allow independent width and height for ellipse shapes
             finalWidth = transformed.width;
-            finalHeight = transformed.width;
+            finalHeight = transformed.height;
           }
 
           // Update the shape with new dimensions and rotation

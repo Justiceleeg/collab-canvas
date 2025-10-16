@@ -1,9 +1,10 @@
 "use client";
 
 // PR #10 - Circle Shape Support
-// Circle shape rendering with Konva.Circle
+// PR #12.1 - Updated to use Ellipse for flexible width/height
+// Ellipse shape rendering with Konva.Ellipse (can be circular or elliptical)
 
-import { Circle as KonvaCircle } from "react-konva";
+import { Ellipse as KonvaEllipse } from "react-konva";
 import { CanvasObject } from "@/types/canvas.types";
 import type Konva from "konva";
 import { LockInfo } from "./Shape"; // PR #8
@@ -29,8 +30,9 @@ export default function Circle({
   onDragStart,
   onDragEnd,
 }: CircleProps) {
-  // Calculate radius from width (assuming width === height for circles)
-  const radius = shape.width / 2;
+  // Calculate radii from width and height (supports both circles and ellipses)
+  const radiusX = shape.width / 2;
+  const radiusY = shape.height / 2;
 
   // PR #8 - Determine stroke color based on lock status
   // PR #12 - Remove selection stroke (Transformer handles this now)
@@ -42,11 +44,12 @@ export default function Circle({
   };
 
   return (
-    <KonvaCircle
+    <KonvaEllipse
       id={shape.id}
-      x={shape.x + radius} // Center the circle (Konva positions circles by center)
-      y={shape.y + radius}
-      radius={radius}
+      x={shape.x + radiusX} // Center the ellipse (Konva positions ellipses by center)
+      y={shape.y + radiusY}
+      radiusX={radiusX} // Horizontal radius
+      radiusY={radiusY} // Vertical radius
       fill={shape.color}
       rotation={shape.rotation || 0}
       draggable={!isLocked} // PR #8 - Disable drag if locked by another user
