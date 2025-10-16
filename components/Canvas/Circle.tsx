@@ -17,6 +17,7 @@ interface CircleProps {
   onClick?: (e: Konva.KonvaEventObject<MouseEvent>) => void; // PR #13 - Pass event
   onDragStart?: (e: Konva.KonvaEventObject<DragEvent>) => void; // PR #8
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
+  onContextMenu?: (e: Konva.KonvaEventObject<PointerEvent>) => void; // Right-click
 }
 
 export default function Circle({
@@ -27,6 +28,7 @@ export default function Circle({
   onClick,
   onDragStart,
   onDragEnd,
+  onContextMenu,
 }: CircleProps) {
   // Calculate radii from width and height (supports both circles and ellipses)
   const radiusX = shape.width / 2;
@@ -76,6 +78,7 @@ export default function Circle({
       onTap={onClick}
       onDragStart={onDragStart} // PR #8
       onDragEnd={onDragEnd} // Parent Canvas.tsx handles coordinate conversion
+      onContextMenu={onContextMenu} // Right-click context menu
       // Visual feedback for selection/lock status
       stroke={strokeProps.stroke}
       strokeWidth={strokeProps.strokeWidth}

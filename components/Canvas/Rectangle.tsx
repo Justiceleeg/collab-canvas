@@ -16,6 +16,7 @@ interface RectangleProps {
   onClick?: (e: Konva.KonvaEventObject<MouseEvent>) => void; // PR #13 - Pass event
   onDragStart?: (e: Konva.KonvaEventObject<DragEvent>) => void; // PR #8
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
+  onContextMenu?: (e: Konva.KonvaEventObject<PointerEvent>) => void; // Right-click
 }
 
 export default function Rectangle({
@@ -26,6 +27,7 @@ export default function Rectangle({
   onClick,
   onDragStart,
   onDragEnd,
+  onContextMenu,
 }: RectangleProps) {
   // PR #8/#14 - Determine stroke color and style based on selection/lock status
   const getStrokeProps = () => {
@@ -71,6 +73,7 @@ export default function Rectangle({
       onTap={onClick}
       onDragStart={onDragStart} // PR #8
       onDragEnd={onDragEnd}
+      onContextMenu={onContextMenu} // Right-click context menu
       // Visual feedback for selection/lock status
       stroke={strokeProps.stroke}
       strokeWidth={strokeProps.strokeWidth}

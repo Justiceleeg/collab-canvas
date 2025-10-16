@@ -1,0 +1,209 @@
+// Keyboard Shortcuts Hook
+// Centralized keyboard event handling for the canvas
+// Consolidates all keyboard shortcuts in one place
+
+import { useEffect, useCallback } from "react";
+import { useSelectionStore } from "@/store/selectionStore";
+import { useUIStore } from "@/store/uiStore";
+import type { CanvasCommandService } from "@/services/canvasCommands";
+
+interface UseKeyboardShortcutsProps {
+  commands: CanvasCommandService;
+  editingTextId: string | null;
+  activeTool: string | null;
+  onEscapeKey?: () => void;
+}
+
+/**
+ * Check if user is currently typing in an input field
+ */
+function isTypingInInput(target: EventTarget | null): boolean {
+  if (!target) return false;
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    (target as HTMLElement).isContentEditable
+  );
+}
+
+/**
+ * Centralized keyboard shortcuts management
+ */
+export function useKeyboardShortcuts({
+  commands,
+  editingTextId,
+  activeTool,
+  onEscapeKey,
+}: UseKeyboardShortcutsProps) {
+  const { selectedIds, deselectAll } = useSelectionStore();
+  const { setModifier } = useUIStore();
+
+  // Track modifier keys (Shift, Ctrl/Cmd, Alt)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Shift") setModifier("shift", true);
+      if (e.key === "Control") setModifier("ctrl", true);
+      if (e.key === "Meta") setModifier("meta", true);
+      if (e.key === "Alt") setModifier("alt", true);
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Shift") setModifier("shift", false);
+      if (e.key === "Control") setModifier("ctrl", false);
+      if (e.key === "Meta") setModifier("meta", false);
+      if (e.key === "Alt") setModifier("alt", false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [setModifier]);
+
+  // Main keyboard shortcut handler
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      // Don't handle shortcuts when typing in inputs or editing text
+      if (isTypingInInput(e.target) || editingTextId) {
+        return;
+      }
+
+      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+      // Escape key: Deselect all and exit active tool
+      if (e.key === "Escape") {
+        deselectAll();
+        if (onEscapeKey) {
+          onEscapeKey();
+        }
+        return;
+      }
+
+      // Delete/Backspace: Delete selected shapes
+      if (
+        (e.key === "Delete" || e.key === "Backspace") &&
+        selectedIds.length > 0
+      ) {
+        e.preventDefault();
+        await commands.deleteShapes(selectedIds);
+        return;
+      }
+
+      // Cmd/Ctrl + D: Duplicate selected shapes
+      if (cmdOrCtrl && e.key === "d" && selectedIds.length > 0) {
+        e.preventDefault();
+        await commands.duplicateShapes(selectedIds);
+        return;
+      }
+
+      // Cmd/Ctrl + C: Copy selected shapes
+      if (cmdOrCtrl && e.key === "c" && selectedIds.length > 0) {
+        e.preventDefault();
+        await commands.copyShapes(selectedIds);
+        return;
+      }
+
+      // Cmd/Ctrl + V: Paste shapes
+      if (cmdOrCtrl && e.key === "v") {
+        e.preventDefault();
+        await commands.pasteShapes();
+        return;
+      }
+
+      // Cmd/Ctrl + A: Select all shapes
+      if (cmdOrCtrl && e.key === "a") {
+        e.preventDefault();
+        // TODO: Implement select all in future PR
+        console.log("Select all - coming soon");
+        return;
+      }
+
+      // Cmd/Ctrl + Z: Undo
+      if (cmdOrCtrl && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        // TODO: Implement undo in future PR
+        console.log("Undo - coming soon");
+        return;
+      }
+
+      // Cmd/Ctrl + Shift + Z or Cmd/Ctrl + Y: Redo
+      if (
+        (cmdOrCtrl && e.shiftKey && e.key === "z") ||
+        (cmdOrCtrl && e.key === "y")
+      ) {
+        e.preventDefault();
+        // TODO: Implement redo in future PR
+        console.log("Redo - coming soon");
+        return;
+      }
+
+      // Arrow keys: Move selected shapes (with modifier for larger steps)
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        if (selectedIds.length > 0) {
+          e.preventDefault();
+
+          const step = e.shiftKey ? 10 : 1; // Shift for larger steps
+          const delta = { x: 0, y: 0 };
+
+          switch (e.key) {
+            case "ArrowUp":
+              delta.y = -step;
+              break;
+            case "ArrowDown":
+              delta.y = step;
+              break;
+            case "ArrowLeft":
+              delta.x = -step;
+              break;
+            case "ArrowRight":
+              delta.x = step;
+              break;
+          }
+
+          await commands.moveShapes(selectedIds, delta);
+        }
+        return;
+      }
+
+      // Cmd/Ctrl + ]: Bring to front
+      if (cmdOrCtrl && e.key === "]" && selectedIds.length > 0) {
+        e.preventDefault();
+        await commands.bringToFront(selectedIds);
+        return;
+      }
+
+      // Cmd/Ctrl + [: Send to back
+      if (cmdOrCtrl && e.key === "[" && selectedIds.length > 0) {
+        e.preventDefault();
+        await commands.sendToBack(selectedIds);
+        return;
+      }
+
+      // Cmd/Ctrl + G: Group selected shapes
+      if (cmdOrCtrl && e.key === "g" && selectedIds.length > 1) {
+        e.preventDefault();
+        await commands.groupShapes(selectedIds);
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    commands,
+    selectedIds,
+    editingTextId,
+    activeTool,
+    onEscapeKey,
+    deselectAll,
+  ]);
+
+  // Return current modifier state for components that need it
+  const modifiers = useUIStore((state) => state.modifiers);
+  return { modifiers };
+}

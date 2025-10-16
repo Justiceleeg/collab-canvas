@@ -1,3 +1,9 @@
+%% Collab Canvas Architecture (4-Tier Pattern)
+%% Layer 0: UI Components (rendering)
+%% Layer 1: UI State (uiStore - menus, toasts, modals)
+%% Layer 2: Interaction Handlers (keyboard, shape events)
+%% Layer 3: Command Service (all canvas operations)
+%% Layer 4: Domain State (canvasStore, selectionStore)
 graph LR
     subgraph "User's Browser (Client)"
         direction LR
@@ -5,15 +11,23 @@ graph LR
 
         subgraph "Next.js Application (App Router)"
             direction TB
-            UI("UI Components<br/><i>Canvas, Toolbar, Cursors</i><br/>Konva.js for rendering")
-            Hooks("React Hooks (Logic Layer)<br/><i>useCanvas, useFirestore<br/>useLocking, usePresence</i>")
-            State("Zustand (State Management)<br/><i>canvasStore<br/>selectionStore</i>")
-            Services("Service Layer (Data Access)<br/><i>firestore.service.ts<br/>auth.service.ts</i>")
+            UI("UI Components (Layer 0)<br/><i>Canvas, Toolbar, Cursors<br/>ContextMenu, Toast</i><br/>Konva.js for rendering")
+            UIState("UI State Store (Layer 1)<br/><i>uiStore.ts</i><br/>Context menus, toasts, modals")
+            Interactions("Interaction Hooks (Layer 2)<br/><i>useKeyboardShortcuts<br/>useShapeInteractions</i>")
+            Commands("Command Service (Layer 3)<br/><i>CanvasCommandService</i><br/>All canvas operations")
+            DomainHooks("Domain Hooks<br/><i>useCanvas, useFirestore<br/>useLocking, usePresence</i>")
+            State("Domain State (Layer 4)<br/><i>canvasStore<br/>selectionStore</i>")
+            Services("Service Layer (Data Access)<br/><i>firestore.service.ts<br/>auth.service.ts<br/>presence.service.ts</i>")
 
-            UI -- "Triggers actions via" --> Hooks
-            Hooks -- "Updates & reads from" --> State
-            State -- "Triggers UI re-render" --> UI
-            Hooks -- "Calls backend via" --> Services
+            UI -- "User actions" --> Interactions
+            UI -- "Reads UI state" --> UIState
+            Interactions -- "Executes" --> Commands
+            Commands -- "Updates" --> UIState
+            Commands -- "Uses" --> DomainHooks
+            DomainHooks -- "Updates & reads" --> State
+            State -- "Triggers re-render" --> UI
+            Commands -- "Calls backend" --> Services
+            DomainHooks -- "Calls backend" --> Services
         end
     end
 

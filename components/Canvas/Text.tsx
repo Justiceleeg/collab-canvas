@@ -20,6 +20,7 @@ interface TextProps {
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
   onDblClick?: () => void;
   isEditing?: boolean;
+  onContextMenu?: (e: Konva.KonvaEventObject<PointerEvent>) => void; // Right-click
 }
 
 export default function Text({
@@ -32,6 +33,7 @@ export default function Text({
   onDragEnd,
   onDblClick,
   isEditing = false,
+  onContextMenu,
 }: TextProps) {
   const textRef = useRef<Konva.Text>(null);
   const [textBounds, setTextBounds] = useState({ width: 0, height: 0 });
@@ -87,6 +89,7 @@ export default function Text({
       onDragEnd={onDragEnd}
       onDblClick={onDblClick}
       onDblTap={onDblClick}
+      onContextMenu={onContextMenu}
       visible={!isEditing}
     >
       {/* Bounding box for locked or selected text */}

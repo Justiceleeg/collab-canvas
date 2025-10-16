@@ -299,4 +299,45 @@ multiplayer foundation.
 ✅ Transform operations (move, resize, rotate) functioning\
 ✅ Multi-select and layer management operational\
 ✅ App publicly accessible\
-✅ Smooth 60 FPS interactions
+✅ Smooth 60 FPS interactions\
+✅ Right-click context menus for shape operations\
+✅ Comprehensive keyboard shortcuts (Cmd+D, Delete, Arrow keys, etc.)\
+✅ Toast notifications for user feedback
+
+---
+
+## 8. Architecture Implementation Notes
+
+### 4-Tier Architecture (Implemented)
+
+The codebase uses a clean 4-tier architecture for maintainability and scalability:
+
+**Layer 1: UI State Management (`store/uiStore.ts`)**
+- Context menus, tool windows, modals
+- Toast notifications
+- Keyboard modifier tracking
+- Separated from domain state for clarity
+
+**Layer 2: Interaction Handlers**
+- `hooks/useKeyboardShortcuts.ts` - Centralized keyboard handling
+- `hooks/useShapeInteractions.ts` - All shape event handlers
+- Clean separation of user interactions from business logic
+
+**Layer 3: Command Service (`services/canvasCommands.ts`)**
+- `CanvasCommandService` class for all canvas operations
+- Consistent error handling and user feedback
+- Reusable commands (can be called from menu, keyboard, toolbar)
+- Handles locking, Firestore sync, optimistic updates
+
+**Layer 4: Domain State** 
+- `store/canvasStore.ts` - Canvas objects, viewport
+- `store/selectionStore.ts` - Selected shape IDs
+- Firestore sync via `useFirestore` hook
+
+**Benefits:**
+- **Testability**: Commands can be tested without rendering UI
+- **Reusability**: Same command callable from multiple sources
+- **Maintainability**: Clear ownership - easy to find where to add features
+- **Scalability**: Easy to extend with new commands, shortcuts, or UI overlays
+
+See `ARCHITECTURE.md` for detailed documentation and examples.

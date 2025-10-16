@@ -29,6 +29,7 @@ export interface ShapeProps {
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
   onDblClick?: () => void; // PR #11 - Text editing
   isEditing?: boolean; // PR #11 - Text editing state
+  onContextMenu?: (e: Konva.KonvaEventObject<PointerEvent>) => void; // Right-click context menu
 }
 
 export default function Shape({
@@ -41,6 +42,7 @@ export default function Shape({
   onDragEnd,
   onDblClick,
   isEditing,
+  onContextMenu,
 }: ShapeProps) {
   // Render the appropriate shape component based on type
   switch (shape.type) {
@@ -54,6 +56,7 @@ export default function Shape({
           onClick={onClick}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
+          onContextMenu={onContextMenu}
         />
       );
 
@@ -67,6 +70,7 @@ export default function Shape({
           onClick={onClick}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
+          onContextMenu={onContextMenu}
         />
       );
 
@@ -82,6 +86,7 @@ export default function Shape({
           onDragEnd={onDragEnd}
           onDblClick={onDblClick}
           isEditing={isEditing}
+          onContextMenu={onContextMenu}
         />
       );
 

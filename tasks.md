@@ -21,9 +21,12 @@ collab-canvas/
 │   │   ├── Rectangle.tsx                 # Rectangle shape
 │   │   ├── Circle.tsx                    # Circle shape
 │   │   ├── Text.tsx                      # Text shape
+│   │   ├── TextEditor.tsx                # Text editing overlay
 │   │   ├── Transformer.tsx               # Transform controls
 │   │   ├── SelectionBox.tsx              # Multi-select rectangle
-│   │   └── Cursors.tsx                   # Multiplayer cursors
+│   │   ├── Cursors.tsx                   # Multiplayer cursors
+│   │   ├── ContextMenu.tsx               # Right-click context menu
+│   │   └── Toast.tsx                     # Toast notifications
 │   ├── Toolbar/
 │   │   ├── Toolbar.tsx                   # Main toolbar
 │   │   ├── ShapeTools.tsx                # Shape creation buttons
@@ -42,15 +45,20 @@ collab-canvas/
 │   ├── usePresence.ts                    # User presence tracking (Realtime DB)
 │   ├── useCursors.ts                     # Cursor position sync (Realtime DB)
 │   ├── useLocking.ts                     # Object locking logic
+│   ├── useActiveLock.ts                  # Simplified lock management
+│   ├── useKeyboardShortcuts.ts           # Centralized keyboard handling
+│   ├── useShapeInteractions.ts           # Shape event handlers
 │   └── usePerformance.ts                 # FPS & performance monitoring
 ├── services/
 │   ├── firebase.ts                       # Firebase initialization (both DBs)
 │   ├── firestore.service.ts              # Firestore CRUD operations
 │   ├── auth.service.ts                   # Auth operations
-│   └── presence.service.ts               # Presence management (Realtime DB)
+│   ├── presence.service.ts               # Presence management (Realtime DB)
+│   └── canvasCommands.ts                 # Command service for canvas operations
 ├── store/
 │   ├── canvasStore.ts                    # Zustand store for canvas state
-│   └── selectionStore.ts                 # Selection state management
+│   ├── selectionStore.ts                 # Selection state management
+│   └── uiStore.ts                        # UI overlay state (menus, toasts, modals)
 ├── types/
 │   ├── canvas.types.ts                   # Shape & canvas types
 │   ├── user.types.ts                     # User & presence types
@@ -68,6 +76,7 @@ collab-canvas/
 ├── firestore.rules                       # Firestore security rules
 ├── database.rules.json                   # Realtime Database security rules
 ├── firestore.indexes.json                # Composite indexes
+├── ARCHITECTURE.md                       # Architecture documentation (4-tier)
 ├── package.json
 ├── tsconfig.json
 ├── next.config.js                        # Next.js configuration
@@ -974,6 +983,87 @@ presence system.
 
 ---
 
+### **PR #20: Architecture Refactor (4-Tier System)** 🏗️ ✅
+
+**Priority:** HIGH (Code quality & maintainability)\
+**Estimated Time:** 4-5 hours\
+**Status:** COMPLETED
+
+#### Tasks:
+
+1. **Create UI state store**
+   - Files: `store/uiStore.ts`
+   - Context menus, tool windows, modals state
+   - Toast notification system
+   - Keyboard modifier tracking
+
+2. **Build command service layer**
+   - Files: `services/canvasCommands.ts`
+   - Centralized CanvasCommandService class
+   - All canvas operations (delete, duplicate, move, transform, etc.)
+   - Consistent error handling and user feedback
+
+3. **Extract keyboard shortcuts hook**
+   - Files: `hooks/useKeyboardShortcuts.ts`
+   - Consolidate all keyboard handling
+   - Centralized shortcut definitions
+   - Support for Cmd+D, Cmd+C/V, Delete, Arrow keys, etc.
+
+4. **Extract shape interactions hook**
+   - Files: `hooks/useShapeInteractions.ts`
+   - All shape event handlers
+   - Click, right-click, drag, transform, text editing
+   - Separated from Canvas.tsx
+
+5. **Create context menu component**
+   - Files: `components/Canvas/ContextMenu.tsx`
+   - Right-click menu for shapes
+   - Duplicate, Copy, Delete, Layer operations
+   - Properties panel trigger
+
+6. **Create toast notification component**
+   - Files: `components/Canvas/Toast.tsx`
+   - User feedback for all operations
+   - Success, error, warning, info types
+   - Auto-dismiss with animation
+
+7. **Refactor Canvas.tsx**
+   - Files: `components/Canvas/Canvas.tsx`
+   - Reduced from 600+ to ~350 lines
+   - Uses new hooks and command service
+   - Cleaner composition pattern
+
+8. **Update shape components**
+   - Files: `components/Canvas/Shape.tsx`, `Rectangle.tsx`, `Circle.tsx`, `Text.tsx`
+   - Add `onContextMenu` prop for right-click
+   - Pass through to all shape types
+
+9. **Add architecture documentation**
+   - Files: `ARCHITECTURE.md`
+   - Complete guide to 4-tier system
+   - Examples and patterns
+   - How to extend with new features
+
+#### Deliverable:
+
+- ✅ Canvas component reduced from 600+ to ~350 lines
+- ✅ All keyboard shortcuts consolidated in one place
+- ✅ Right-click context menu working on all shapes
+- ✅ Toast notifications for user feedback
+- ✅ Command service handles all canvas operations
+- ✅ Clear separation of concerns (UI/Interaction/Command/Domain)
+- ✅ Production build successful with no errors
+- ✅ All existing functionality preserved
+- ✅ Architecture documented in ARCHITECTURE.md
+
+**Architecture Benefits:**
+- Easier to test (commands separate from UI)
+- Easier to extend (clear place for new features)
+- Better code organization (small, focused files)
+- Reusable commands (same code from menu, keyboard, toolbar)
+
+---
+
 ## Summary Timeline
 
 | PR # | Title                           | Priority | Time     | Cumulative            |
@@ -997,8 +1087,9 @@ presence system.
 | 17   | Performance Monitoring          | HIGH     | 3-4h     | 53.5-70.5h            |
 | 18   | Polish & Error Handling         | MEDIUM   | 3-4h     | 56.5-74.5h            |
 | 19   | Testing & Documentation         | HIGH     | 3-4h     | 59.5-78.5h            |
+| 20   | Architecture Refactor (4-Tier)  | HIGH     | 4-5h     | 63.5-83.5h ✅         |
 
-**Total Estimated Time:** 59.5-78.5 hours (7.5-10 working days for 1 developer)
+**Total Estimated Time:** 63.5-83.5 hours (8-10.5 working days for 1 developer)
 
 **MVP Checkpoint:** After PR #9 (~30.5-39.5 hours) you'll have a complete MVP
 with all critical features: canvas, shapes, real-time sync, locking, and
@@ -1111,23 +1202,28 @@ time constraints.
 
 ## Quick Reference: File Responsibilities
 
-| File/Directory           | Primary Responsibility                                                   |
-| ------------------------ | ------------------------------------------------------------------------ |
-| `app/`                   | Next.js App Router pages and layouts                                     |
-| `services/`              | Firebase initialization (both DBs), Firestore ops, Auth, Presence (RTDB) |
-| `components/Canvas/`     | Canvas rendering, shapes, cursors, transformers                          |
-| `components/Toolbar/`    | UI controls for shape creation and manipulation                          |
-| `components/Auth/`       | Authentication UI and logic                                              |
-| `components/Presence/`   | Online users display and cursor rendering (RTDB data)                    |
-| `hooks/`                 | Custom React hooks for state, sync, locking, presence (RTDB)             |
-| `store/`                 | Zustand state management (canvas state, selection state)                 |
-| `types/`                 | TypeScript type definitions                                              |
-| `utils/`                 | Helper functions (geometry, transforms, performance, locking)            |
-| `firestore.rules`        | Security rules for Firestore (canvas objects)                            |
-| `database.rules.json`    | Security rules for Realtime Database (presence)                          |
-| `firestore.indexes.json` | Composite indexes for queries                                            |
-| `middleware.ts`          | Next.js middleware for auth protection                                   |
-| `next.config.js`         | Next.js configuration                                                    |
+| File/Directory             | Primary Responsibility                                                   |
+| -------------------------- | ------------------------------------------------------------------------ |
+| `app/`                     | Next.js App Router pages and layouts                                     |
+| `services/`                | Firebase initialization (both DBs), Firestore ops, Auth, Presence (RTDB), Commands |
+| `services/canvasCommands.ts` | Command service layer - all canvas operations (CRUD, transformations)  |
+| `components/Canvas/`       | Canvas rendering, shapes, cursors, transformers, context menus, toasts  |
+| `components/Toolbar/`      | UI controls for shape creation and manipulation                          |
+| `components/Auth/`         | Authentication UI and logic                                              |
+| `components/Presence/`     | Online users display and cursor rendering (RTDB data)                    |
+| `hooks/`                   | Custom React hooks for state, sync, locking, presence, interactions      |
+| `hooks/useKeyboardShortcuts.ts` | Centralized keyboard shortcut handling                              |
+| `hooks/useShapeInteractions.ts` | Shape event handlers (click, drag, transform, right-click)          |
+| `store/`                   | Zustand state management (canvas, selection, UI overlay states)          |
+| `store/uiStore.ts`         | UI overlay state (context menus, toasts, modals, tool windows)           |
+| `types/`                   | TypeScript type definitions                                              |
+| `utils/`                   | Helper functions (geometry, transforms, performance, locking)            |
+| `firestore.rules`          | Security rules for Firestore (canvas objects)                            |
+| `database.rules.json`      | Security rules for Realtime Database (presence)                          |
+| `firestore.indexes.json`   | Composite indexes for queries                                            |
+| `ARCHITECTURE.md`          | 4-tier architecture documentation and patterns                           |
+| `middleware.ts`            | Next.js middleware for auth protection                                   |
+| `next.config.js`           | Next.js configuration                                                    |
 
 ---
 
