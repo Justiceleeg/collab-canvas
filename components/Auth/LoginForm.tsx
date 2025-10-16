@@ -21,18 +21,21 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
+      // Both functions return the User object with correct display name
       if (mode === "signup") {
         await signUpWithEmail(email, password, displayName || "User");
-        // Force refresh to get updated display name
-        setTimeout(() => refreshUser(), 100);
       } else {
         await signInWithEmail(email, password);
       }
+
+      // Immediately sync auth context with updated Firebase user
+      refreshUser();
+
+      // Navigate to canvas with correct user data in context
       router.push("/canvas");
     } catch (err: unknown) {
       console.error("Auth error:", err);
       setError(err instanceof Error ? err.message : "Authentication failed");
-    } finally {
       setLoading(false);
     }
   };
