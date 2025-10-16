@@ -217,6 +217,142 @@ export class CanvasCommandService {
   }
 
   /**
+   * Bring shapes forward one layer (move up by one position in z-order)
+   */
+  async bringForward(shapeIds: string[]): Promise<void> {
+    if (shapeIds.length === 0 || !this.userId) return;
+
+    const userId = this.userId;
+
+    try {
+      const { objects } = useCanvasStore.getState();
+
+      // Sort all shapes by zIndex (ascending)
+      const sortedShapes = [...objects].sort((a, b) => a.zIndex - b.zIndex);
+
+      // Process each selected shape
+      const updates: Array<{ id: string; zIndex: number }> = [];
+
+      for (const shapeId of shapeIds) {
+        const currentIndex = sortedShapes.findIndex((s) => s.id === shapeId);
+        if (currentIndex === -1 || currentIndex === sortedShapes.length - 1) {
+          continue; // Shape not found or already at top
+        }
+
+        // Find next non-selected shape above this one
+        let targetIndex = currentIndex + 1;
+        while (
+          targetIndex < sortedShapes.length &&
+          shapeIds.includes(sortedShapes[targetIndex].id)
+        ) {
+          targetIndex++;
+        }
+
+        if (targetIndex >= sortedShapes.length) {
+          continue; // No non-selected shape above
+        }
+
+        // Calculate new zIndex: slightly above the target shape
+        const targetShape = sortedShapes[targetIndex];
+        const shapeAboveTarget = sortedShapes[targetIndex + 1];
+
+        const newZIndex = shapeAboveTarget
+          ? (targetShape.zIndex + shapeAboveTarget.zIndex) / 2
+          : targetShape.zIndex + 1;
+
+        updates.push({ id: shapeId, zIndex: newZIndex });
+      }
+
+      // Apply all updates
+      if (updates.length > 0) {
+        await Promise.all(
+          updates.map((update) =>
+            firestoreService.updateObject(
+              update.id,
+              { zIndex: update.zIndex },
+              userId
+            )
+          )
+        );
+      }
+
+      useUIStore.getState().showToast("Brought forward", "success");
+    } catch (error) {
+      console.error("Error bringing forward:", error);
+      useUIStore.getState().showToast("Failed to bring forward", "error");
+      throw error;
+    }
+  }
+
+  /**
+   * Send shapes backward one layer (move down by one position in z-order)
+   */
+  async sendBackward(shapeIds: string[]): Promise<void> {
+    if (shapeIds.length === 0 || !this.userId) return;
+
+    const userId = this.userId;
+
+    try {
+      const { objects } = useCanvasStore.getState();
+
+      // Sort all shapes by zIndex (ascending)
+      const sortedShapes = [...objects].sort((a, b) => a.zIndex - b.zIndex);
+
+      // Process each selected shape
+      const updates: Array<{ id: string; zIndex: number }> = [];
+
+      for (const shapeId of shapeIds) {
+        const currentIndex = sortedShapes.findIndex((s) => s.id === shapeId);
+        if (currentIndex === -1 || currentIndex === 0) {
+          continue; // Shape not found or already at bottom
+        }
+
+        // Find next non-selected shape below this one
+        let targetIndex = currentIndex - 1;
+        while (
+          targetIndex >= 0 &&
+          shapeIds.includes(sortedShapes[targetIndex].id)
+        ) {
+          targetIndex--;
+        }
+
+        if (targetIndex < 0) {
+          continue; // No non-selected shape below
+        }
+
+        // Calculate new zIndex: slightly below the target shape
+        const targetShape = sortedShapes[targetIndex];
+        const shapeBelowTarget = sortedShapes[targetIndex - 1];
+
+        const newZIndex = shapeBelowTarget
+          ? (targetShape.zIndex + shapeBelowTarget.zIndex) / 2
+          : targetShape.zIndex - 1;
+
+        updates.push({ id: shapeId, zIndex: newZIndex });
+      }
+
+      // Apply all updates
+      if (updates.length > 0) {
+        await Promise.all(
+          updates.map((update) =>
+            firestoreService.updateObject(
+              update.id,
+              { zIndex: update.zIndex },
+              userId
+            )
+          )
+        );
+      }
+
+      useUIStore.getState().showToast("Sent backward", "success");
+    } catch (error) {
+      console.error("Error sending backward:", error);
+      useUIStore.getState().showToast("Failed to send backward", "error");
+      throw error;
+    }
+  }
+
+  /**
    * Move shapes by delta
    */
   async moveShapes(

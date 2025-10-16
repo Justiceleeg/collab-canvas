@@ -170,15 +170,29 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      // Cmd/Ctrl + ]: Bring to front
-      if (cmdOrCtrl && e.key === "]" && selectedIds.length > 0) {
+      // Shift + ] or }: Bring forward
+      if ((e.key === "}" || (e.key === "]" && e.shiftKey)) && selectedIds.length > 0) {
+        e.preventDefault();
+        await commands.bringForward(selectedIds);
+        return;
+      }
+
+      // Shift + [ or {: Send backward
+      if ((e.key === "{" || (e.key === "[" && e.shiftKey)) && selectedIds.length > 0) {
+        e.preventDefault();
+        await commands.sendBackward(selectedIds);
+        return;
+      }
+
+      // ]: Bring to front
+      if (e.key === "]" && !e.shiftKey && selectedIds.length > 0) {
         e.preventDefault();
         await commands.bringToFront(selectedIds);
         return;
       }
 
-      // Cmd/Ctrl + [: Send to back
-      if (cmdOrCtrl && e.key === "[" && selectedIds.length > 0) {
+      // [: Send to back
+      if (e.key === "[" && !e.shiftKey && selectedIds.length > 0) {
         e.preventDefault();
         await commands.sendToBack(selectedIds);
         return;

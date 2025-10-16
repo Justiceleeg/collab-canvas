@@ -68,6 +68,13 @@ interface UIStore {
     alt: boolean;
   };
   setModifier: (key: keyof UIStore["modifiers"], value: boolean) => void;
+
+  // Layer panel state
+  layerPanel: {
+    isOpen: boolean;
+  };
+  toggleLayerPanel: () => void;
+  setLayerPanelOpen: (isOpen: boolean) => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -203,5 +210,26 @@ export const useUIStore = create<UIStore>((set) => ({
         [key]: value,
       },
     }));
+  },
+
+  // Layer panel initial state (defaults to closed)
+  layerPanel: {
+    isOpen: false,
+  },
+
+  toggleLayerPanel: () => {
+    set((state) => ({
+      layerPanel: {
+        isOpen: !state.layerPanel.isOpen,
+      },
+    }));
+  },
+
+  setLayerPanelOpen: (isOpen) => {
+    set({
+      layerPanel: {
+        isOpen,
+      },
+    });
   },
 }));

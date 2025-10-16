@@ -116,9 +116,33 @@ export default function ContextMenu({ commands }: ContextMenuProps) {
             handleAction(() => commands.bringToFront(targetShapeIds))
           }
         >
-          <span className="text-lg">⬆️</span>
+          <span className="text-lg">⏫</span>
           <span>Bring to Front</span>
-          <span className="ml-auto text-xs text-gray-400">⌘]</span>
+          <span className="ml-auto text-xs text-gray-400">]</span>
+        </button>
+
+        {/* Bring Forward */}
+        <button
+          className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
+          onClick={() =>
+            handleAction(() => commands.bringForward(targetShapeIds))
+          }
+        >
+          <span className="text-lg">⬆️</span>
+          <span>Bring Forward</span>
+          <span className="ml-auto text-xs text-gray-400">Shift+]</span>
+        </button>
+
+        {/* Send Backward */}
+        <button
+          className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
+          onClick={() =>
+            handleAction(() => commands.sendBackward(targetShapeIds))
+          }
+        >
+          <span className="text-lg">⬇️</span>
+          <span>Send Backward</span>
+          <span className="ml-auto text-xs text-gray-400">Shift+[</span>
         </button>
 
         {/* Send to Back */}
@@ -128,9 +152,9 @@ export default function ContextMenu({ commands }: ContextMenuProps) {
             handleAction(() => commands.sendToBack(targetShapeIds))
           }
         >
-          <span className="text-lg">⬇️</span>
+          <span className="text-lg">⏬</span>
           <span>Send to Back</span>
-          <span className="ml-auto text-xs text-gray-400">⌘[</span>
+          <span className="ml-auto text-xs text-gray-400">[</span>
         </button>
 
         <div className="border-t border-gray-200 my-1" />

@@ -766,37 +766,75 @@ presence system.
 
 #### Tasks:
 
-1. **Add zIndex to shapes**
-   - Files: `types/canvas.types.ts`, `store/canvasStore.ts`
-   - Include zIndex in shape data
-   - Default zIndex on creation
+1. **Add layer panel state management**
+   - Files: `store/uiStore.ts`
+   - Track layer panel open/closed state
+   - Panel defaults to closed on page load
+   - No localStorage persistence (always starts collapsed)
 
-2. **Sort shapes by zIndex**
+2. **Add layer command operations**
+   - Files: `services/canvasCommands.ts`
+   - Implement `bringForward()` - moves shape up one layer
+   - Implement `sendBackward()` - moves shape down one layer
+   - Existing `bringToFront()` and `sendToBack()` already implemented
+   - All operations sync to Firestore and show toast notifications
+
+3. **Update keyboard shortcuts**
+   - Files: `hooks/useKeyboardShortcuts.ts`
+   - Remove Cmd/Ctrl requirement from bracket keys
+   - `]` key - Bring to Front (global when shapes selected)
+   - `[` key - Send to Back (global when shapes selected)
+   - `Shift+]` key - Bring Forward (global when shapes selected)
+   - `Shift+[` key - Send Backward (global when shapes selected)
+
+4. **Update context menu**
+   - Files: `components/Canvas/ContextMenu.tsx`
+   - Add "Bring Forward" option with `Shift+]` shortcut hint
+   - Add "Send Backward" option with `Shift+[` shortcut hint
+   - Update "Bring to Front" to show `]` shortcut hint (no Cmd)
+   - Update "Send to Back" to show `[` shortcut hint (no Cmd)
+
+5. **Create LayerPanel component**
+   - Files: `components/Canvas/LayerPanel.tsx`
+   - Collapsible panel on left side (~180-200px width, similar to context menu)
+   - Defaults to collapsed on page load
+   - Collapse/expand button
+   - Lists all shapes ordered by zIndex (highest first = top of list)
+   - Each item shows:
+     - 40×40px mini canvas preview of shape (fixed square, maintains aspect ratio)
+     - Drag handle icon (☰) on left side
+     - Visual indicator when shape is selected on canvas
+   - Click item to select corresponding shape on canvas
+   - Auto-scroll behavior: when shape is singularly selected on canvas, panel auto-scrolls to center that item vertically
+
+6. **Implement drag-to-reorder**
+   - Files: `components/Canvas/LayerPanel.tsx`
+   - Drag items in list to reorder
+   - Update zIndex values in Firestore
+   - Visual feedback during drag (ghost/preview)
+   - Drop indicator line showing where item will land
+   - Smooth animations on reorder
+
+7. **Integrate LayerPanel into Canvas**
    - Files: `components/Canvas/Canvas.tsx`
-   - Render shapes in zIndex order
-
-3. **Create layer tools**
-   - Files: `components/Toolbar/LayerTools.tsx`
-   - "Bring Forward" button
-   - "Send Backward" button
-   - "Bring to Front" button
-   - "Send to Back" button
-
-4. **Implement layer operations**
-   - Files: `store/canvasStore.ts`
-   - Update zIndex for selected shapes
-   - Sync to Firestore
-
-5. **Add to toolbar**
-   - Files: `components/Toolbar/Toolbar.tsx`
-   - Mount LayerTools component
+   - Mount LayerPanel component
+   - Position on left side of canvas
+   - Ensure it doesn't interfere with toolbar or other UI elements
 
 #### Deliverable:
 
-- ✅ Shapes render in correct layer order
-- ✅ Layer control buttons in toolbar
-- ✅ Bring forward/back operations work
-- ✅ Layer changes sync across users
+- ✅ Collapsible layer panel on left (defaults to collapsed)
+- ✅ Mini canvas previews (40×40px) showing actual shape appearance
+- ✅ Drag handle indicator on each item
+- ✅ Click item to select shape on canvas
+- ✅ Auto-scroll to center selected shape when panel is open
+- ✅ Drag items to reorder layers
+- ✅ All 4 layer operations work: Bring to Front `]`, Send to Back `[`, Bring Forward `Shift+]`, Send Backward `Shift+[`
+- ✅ Keyboard shortcuts work without Cmd/Ctrl modifier
+- ✅ Context menu shows all 4 layer operations
+- ✅ Layer changes sync across users in real-time
+- ✅ Toast notifications for layer operations
+- ✅ Visual feedback for selected items and drag operations
 
 ---
 

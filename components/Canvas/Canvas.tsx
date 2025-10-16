@@ -22,6 +22,7 @@ import Transformer from "./Transformer";
 import TextEditor from "./TextEditor";
 import ContextMenu from "./ContextMenu";
 import Toast from "./Toast";
+import LayerPanel from "./LayerPanel";
 import { Text } from "react-konva";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useAuth } from "@/hooks/useAuth";
@@ -270,32 +271,36 @@ export default function Canvas() {
             />
           )}
 
-          {/* Render all shapes */}
-          {objects.map((obj) => (
-            <Shape
-              key={obj.id}
-              shape={obj}
-              isSelected={selectedIds.includes(obj.id)}
-              isLocked={isLocked(obj.id)}
-              lockInfo={getLockInfo(obj.id)}
-              onClick={(e) =>
-                shapeInteractions.handleShapeClick(obj.id, e.evt.shiftKey)
-              }
-              onDragStart={(e) =>
-                shapeInteractions.handleShapeDragStart(obj.id, e)
-              }
-              onDragEnd={(e) => shapeInteractions.handleShapeDragEnd(obj.id, e)}
-              onDblClick={
-                obj.type === "text"
-                  ? () => handleTextDblClick(obj.id)
-                  : undefined
-              }
-              isEditing={obj.id === editingTextId}
-              onContextMenu={(e) =>
-                shapeInteractions.handleShapeRightClick(obj.id, e)
-              }
-            />
-          ))}
+          {/* Render all shapes (sorted by zIndex - lowest first so highest renders on top) */}
+          {[...objects]
+            .sort((a, b) => a.zIndex - b.zIndex)
+            .map((obj) => (
+              <Shape
+                key={obj.id}
+                shape={obj}
+                isSelected={selectedIds.includes(obj.id)}
+                isLocked={isLocked(obj.id)}
+                lockInfo={getLockInfo(obj.id)}
+                onClick={(e) =>
+                  shapeInteractions.handleShapeClick(obj.id, e.evt.shiftKey)
+                }
+                onDragStart={(e) =>
+                  shapeInteractions.handleShapeDragStart(obj.id, e)
+                }
+                onDragEnd={(e) =>
+                  shapeInteractions.handleShapeDragEnd(obj.id, e)
+                }
+                onDblClick={
+                  obj.type === "text"
+                    ? () => handleTextDblClick(obj.id)
+                    : undefined
+                }
+                isEditing={obj.id === editingTextId}
+                onContextMenu={(e) =>
+                  shapeInteractions.handleShapeRightClick(obj.id, e)
+                }
+              />
+            ))}
 
           {/* Transformer for selected shapes (hide when editing text) */}
           {selectedIds.length > 0 && !editingTextId && (
@@ -338,6 +343,9 @@ export default function Canvas() {
 
         {/* Toast notifications */}
         <Toast />
+
+        {/* Layer Panel */}
+        <LayerPanel userId={user?.uid} />
       </div>
 
       {/* Connection status indicator */}
