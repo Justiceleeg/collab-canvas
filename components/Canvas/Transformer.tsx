@@ -1,22 +1,37 @@
 "use client";
 
 // PR #12 - Transform Controls (Resize & Rotate)
-// (Implemented early for PR #11 to show bounding boxes)
 // Konva.Transformer for resize and rotate handles
 // Attaches to selected shapes
+// Handles locking during transformation and syncs to Firestore
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { Transformer as KonvaTransformer } from "react-konva";
 import type Konva from "konva";
 
 interface TransformerProps {
   selectedShapeIds: string[];
   isLocked?: boolean;
+  onTransformStart?: (shapeIds: string[]) => void;
+  onTransformEnd?: (
+    transformedShapes: Array<{
+      id: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      rotation: number;
+      scaleX: number;
+      scaleY: number;
+    }>
+  ) => void;
 }
 
 export default function Transformer({
   selectedShapeIds,
   isLocked = false,
+  onTransformStart,
+  onTransformEnd,
 }: TransformerProps) {
   const transformerRef = useRef<Konva.Transformer>(null);
 
@@ -43,6 +58,53 @@ export default function Transformer({
     // Update transformer layer
     transformer.getLayer()?.batchDraw();
   }, [selectedShapeIds]);
+
+  // Handle transform start - acquire locks
+  const handleTransformStart = useCallback(() => {
+    if (onTransformStart) {
+      onTransformStart(selectedShapeIds);
+    }
+  }, [onTransformStart, selectedShapeIds]);
+
+  // Handle transform end - sync changes to Firestore
+  const handleTransformEnd = useCallback(() => {
+    const transformer = transformerRef.current;
+    if (!transformer || !onTransformEnd) return;
+
+    const nodes = transformer.nodes();
+    const transformedShapes = nodes.map((node) => {
+      const shape = node as Konva.Shape;
+
+      // Get the transformed attributes
+      const scaleX = shape.scaleX() || 1;
+      const scaleY = shape.scaleY() || 1;
+      const rotation = shape.rotation() || 0;
+
+      // For groups (like Text), get position from the group
+      const x = shape.x();
+      const y = shape.y();
+      const width = shape.width() * scaleX;
+      const height = shape.height() * scaleY;
+
+      // Reset scale to 1 after applying to dimensions
+      // This prevents scale accumulation on subsequent transforms
+      shape.scaleX(1);
+      shape.scaleY(1);
+
+      return {
+        id: shape.id(),
+        x,
+        y,
+        width,
+        height,
+        rotation,
+        scaleX,
+        scaleY,
+      };
+    });
+
+    onTransformEnd(transformedShapes);
+  }, [onTransformEnd]);
 
   // Don't render transformer if locked by another user
   if (isLocked) {
@@ -83,6 +145,9 @@ export default function Transformer({
         }
         return newBox;
       }}
+      // Transform event handlers
+      onTransformStart={handleTransformStart}
+      onTransformEnd={handleTransformEnd}
     />
   );
 }

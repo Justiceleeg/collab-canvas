@@ -155,6 +155,76 @@ export default function Canvas() {
     setEditingTextId(null);
   }, []);
 
+  // PR #12 - Transform handlers (resize & rotate)
+  const handleTransformStart = useCallback(
+    async (shapeIds: string[]) => {
+      // Acquire lock for the first selected shape
+      // (Multi-select transform will be handled in PR #13)
+      if (shapeIds.length > 0) {
+        await acquireActiveLock(shapeIds[0]);
+      }
+    },
+    [acquireActiveLock]
+  );
+
+  const handleTransformEnd = useCallback(
+    async (
+      transformedShapes: Array<{
+        id: string;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        rotation: number;
+        scaleX: number;
+        scaleY: number;
+      }>
+    ) => {
+      if (!user) return;
+
+      try {
+        // Update each transformed shape
+        for (const transformed of transformedShapes) {
+          const shape = getObjectById(transformed.id);
+          if (!shape) continue;
+
+          // For circles, we need to handle position differently
+          let finalX = transformed.x;
+          let finalY = transformed.y;
+          let finalWidth = transformed.width;
+          let finalHeight = transformed.height;
+
+          if (shape.type === "circle") {
+            // Circles are positioned by their center in Konva
+            // Convert back to top-left corner for storage
+            const radius = transformed.width / 2;
+            finalX = transformed.x - radius;
+            finalY = transformed.y - radius;
+            // Keep width and height equal for circles
+            finalWidth = transformed.width;
+            finalHeight = transformed.width;
+          }
+
+          // Update the shape with new dimensions and rotation
+          await updateObject(transformed.id, {
+            x: finalX,
+            y: finalY,
+            width: finalWidth,
+            height: finalHeight,
+            rotation: transformed.rotation,
+          });
+        }
+
+        // Release lock after successful update
+        await releaseActiveLock();
+      } catch (error) {
+        console.error("Error syncing shape transformation:", error);
+        // TODO: Show error toast (PR #18)
+      }
+    },
+    [user, getObjectById, updateObject, releaseActiveLock]
+  );
+
   // Extract text node for editing (memoized to avoid recalculating)
   const editingTextNode = useMemo(() => {
     if (!editingTextId || !stageRef.current) return null;
@@ -263,6 +333,8 @@ export default function Canvas() {
             <Transformer
               selectedShapeIds={selectedIds}
               isLocked={selectedIds.some((id) => isLocked(id))}
+              onTransformStart={handleTransformStart}
+              onTransformEnd={handleTransformEnd}
             />
           )}
 
