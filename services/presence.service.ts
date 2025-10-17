@@ -124,21 +124,24 @@ export const presenceService = {
 
   /**
    * Update cursor position in presence data
+   * Optimized to use a single update() call instead of two set() calls
    */
   async updateCursor(userId: string, x: number, y: number): Promise<void> {
     if (!rtdb) {
       throw new Error("Realtime Database not initialized");
     }
 
-    const cursorRef = ref(rtdb, `presence/${userId}/cursor`);
-    await set(cursorRef, {
-      x,
-      y,
-      timestamp: Date.now(),
-    });
+    const presenceRef = ref(rtdb, `presence/${userId}`);
+    const now = Date.now();
 
-    // Update lastSeen timestamp
-    const lastSeenRef = ref(rtdb, `presence/${userId}/lastSeen`);
-    await set(lastSeenRef, Date.now());
+    // Batch both cursor and lastSeen updates in a single call
+    await update(presenceRef, {
+      cursor: {
+        x,
+        y,
+        timestamp: now,
+      },
+      lastSeen: now,
+    });
   },
 };

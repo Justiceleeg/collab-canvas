@@ -1,8 +1,9 @@
 // PR #9 - User Presence & Multiplayer Cursors
 // Cursor position sync hook (Realtime Database)
-// - Update cursor position in Realtime Database (debounced 30-50ms)
-// - Use set() on presence/{userId}/cursor path
+// - Update cursor position in Realtime Database (debounced 15ms)
+// - Use update() on presence/{userId} path for batch writes
 // - Subscribe to other users' cursor positions with onValue()
+// - Optimized to reduce unnecessary re-renders
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { rtdb } from "@/services/firebase";
@@ -25,6 +26,7 @@ export function useCursors() {
   const [cursors, setCursors] = useState<CursorPosition[]>([]);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastUpdateRef = useRef<{ x: number; y: number } | null>(null);
+  const lastCursorsRef = useRef<string>("");
 
   // Subscribe to all users' cursor positions
   useEffect(() => {
@@ -59,9 +61,21 @@ export function useCursors() {
           }
         });
 
-        setCursors(cursorList);
+        // Only update state if cursors actually changed
+        // This prevents unnecessary re-renders
+        const newCursorsKey = cursorList
+          .map((c) => `${c.userId}-${c.x}-${c.y}`)
+          .join("|");
+
+        if (newCursorsKey !== lastCursorsRef.current) {
+          lastCursorsRef.current = newCursorsKey;
+          setCursors(cursorList);
+        }
       } else {
-        setCursors([]);
+        if (lastCursorsRef.current !== "") {
+          lastCursorsRef.current = "";
+          setCursors([]);
+        }
       }
     });
 
@@ -74,7 +88,9 @@ export function useCursors() {
     };
   }, [user]);
 
-  // Update cursor position with debouncing
+  // Update cursor position with throttling (not debouncing)
+  // Throttling ensures updates are sent at a consistent rate
+  // rather than only after the user stops moving
   const updateCursor = useCallback(
     (x: number, y: number) => {
       if (!user) return;
@@ -82,25 +98,24 @@ export function useCursors() {
       // Store the latest position
       lastUpdateRef.current = { x, y };
 
-      // Clear existing timer
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
+      // If there's no pending update, schedule one
+      if (!debounceTimerRef.current) {
+        debounceTimerRef.current = setTimeout(() => {
+          if (lastUpdateRef.current) {
+            presenceService
+              .updateCursor(
+                user.uid,
+                lastUpdateRef.current.x,
+                lastUpdateRef.current.y
+              )
+              .catch((error) => {
+                console.error("Error updating cursor:", error);
+              });
+          }
+          // Clear the timer so the next update can be scheduled
+          debounceTimerRef.current = null;
+        }, TIMING.CURSOR_DEBOUNCE_MS);
       }
-
-      // Set new timer to update
-      debounceTimerRef.current = setTimeout(() => {
-        if (lastUpdateRef.current) {
-          presenceService
-            .updateCursor(
-              user.uid,
-              lastUpdateRef.current.x,
-              lastUpdateRef.current.y
-            )
-            .catch((error) => {
-              console.error("Error updating cursor:", error);
-            });
-        }
-      }, TIMING.CURSOR_DEBOUNCE_MS);
     },
     [user]
   );

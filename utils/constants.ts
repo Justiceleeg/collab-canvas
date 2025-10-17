@@ -20,7 +20,7 @@ export const SHAPES = {
 } as const;
 
 export const TIMING = {
-  CURSOR_DEBOUNCE_MS: 15,
+  CURSOR_DEBOUNCE_MS: 30, // Increased from 15ms to reduce network traffic while maintaining smooth feel
   LOCK_STALE_THRESHOLD_MS: 5000,
   RETRY_MAX_DELAY_MS: 30000,
   RETRY_BASE_DELAY_MS: 1000,

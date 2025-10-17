@@ -1,6 +1,7 @@
 // PR #9 - User Presence & Multiplayer Cursors
 // Single user cursor component
 // - Render cursor SVG with user name label
+// - Optimized with React.memo to prevent unnecessary re-renders
 
 "use client";
 
@@ -13,7 +14,8 @@ interface UserCursorProps {
   color: string;
 }
 
-export default function UserCursor({
+// Memoize to prevent re-renders when other cursors update
+const UserCursor = React.memo(function UserCursor({
   x,
   y,
   displayName,
@@ -21,11 +23,12 @@ export default function UserCursor({
 }: UserCursorProps) {
   return (
     <div
-      className="absolute pointer-events-none z-50 transition-transform duration-75 ease-linear"
+      className="absolute pointer-events-none z-50"
       style={{
         left: `${x}px`,
         top: `${y}px`,
         transform: "translate(-2px, -2px)",
+        willChange: "transform",
       }}
     >
       {/* Cursor SVG - Classic arrow pointer */}
@@ -64,4 +67,6 @@ export default function UserCursor({
       </div>
     </div>
   );
-}
+});
+
+export default UserCursor;
