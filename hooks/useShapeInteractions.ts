@@ -16,6 +16,10 @@ interface UseShapeInteractionsProps {
   commands: CanvasCommandService;
   lockManager: {
     acquireActiveLock: (shapeId: string) => Promise<any>;
+    batchAcquireActiveLocks: (
+      shapeIds: string[],
+      forceReacquire?: boolean
+    ) => Promise<any>;
     releaseActiveLock: () => Promise<void>;
     hasActiveLock: (shapeId: string) => boolean;
     isLocked: (shapeId: string) => boolean;
@@ -113,11 +117,27 @@ export function useShapeInteractions({
       // If dragging a shape that's not in selection, select it
       if (!selectedIds.includes(id)) {
         setSelectedIds([id]);
-      }
-
-      // Only lock the dragged shape if we don't already have it
-      if (!lockManager.hasActiveLock(id)) {
-        await lockManager.acquireActiveLock(id);
+        // Lock just this single shape
+        if (!lockManager.hasActiveLock(id)) {
+          await lockManager.acquireActiveLock(id);
+        }
+      } else {
+        // Dragging a shape that's part of a multi-selection
+        // Lock ALL selected shapes since they all move together
+        if (selectedIds.length > 1) {
+          // ALWAYS re-acquire locks for all selected shapes at drag start
+          // This ensures locks are definitely in Firestore for remote users to see
+          // The transaction will handle cases where we already own the locks
+          console.log(
+            `[Drag] Re-acquiring locks for ${selectedIds.length} selected shapes`
+          );
+          await lockManager.batchAcquireActiveLocks(selectedIds, true);
+        } else {
+          // Single selection - just lock this shape
+          if (!lockManager.hasActiveLock(id)) {
+            await lockManager.acquireActiveLock(id);
+          }
+        }
       }
     },
     [lockManager, selectedIds, setSelectedIds]
@@ -212,8 +232,8 @@ export function useShapeInteractions({
           await updateObject(id, { x: newX, y: newY });
         }
 
-        // Release locks after drag completes
-        await lockManager.releaseActiveLock();
+        // Note: We do NOT release locks here because shapes are still selected
+        // Locks will be released when shapes are deselected (canvas click, select different shapes, etc.)
       } catch (error) {
         console.error("Error syncing shape position:", error);
         useUIStore.getState().showToast("Failed to move shape", "error");
@@ -249,9 +269,25 @@ export function useShapeInteractions({
    */
   const handleTransformStart = useCallback(
     async (shapeIds: string[]) => {
-      // Lock the first shape to prevent concurrent edits
-      if (shapeIds.length > 0 && !lockManager.hasActiveLock(shapeIds[0])) {
-        await lockManager.acquireActiveLock(shapeIds[0]);
+      // Lock ALL shapes being transformed to prevent concurrent edits
+      if (shapeIds.length === 0) return;
+
+      // ALWAYS re-acquire locks at transform start to ensure they're in Firestore
+      console.log(
+        `[Transform] Re-acquiring locks for ${shapeIds.length} shapes`
+      );
+
+      if (shapeIds.length > 1) {
+        // Use batch lock for multiple shapes - force re-acquire
+        await lockManager.batchAcquireActiveLocks(shapeIds, true);
+      } else {
+        // Single shape - verify we have the lock
+        if (!lockManager.hasActiveLock(shapeIds[0])) {
+          await lockManager.acquireActiveLock(shapeIds[0]);
+        } else {
+          // Re-acquire to ensure it's in Firestore
+          await lockManager.acquireActiveLock(shapeIds[0]);
+        }
       }
     },
     [lockManager]

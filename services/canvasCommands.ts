@@ -12,6 +12,10 @@ import type Konva from "konva";
 
 export interface LockManager {
   acquireActiveLock: (shapeId: string) => Promise<any>;
+  batchAcquireActiveLocks: (
+    shapeIds: string[],
+    forceReacquire?: boolean
+  ) => Promise<any>;
   releaseActiveLock: () => Promise<void>;
   hasActiveLock: (shapeId: string) => boolean;
   isLocked: (shapeId: string) => boolean;
@@ -131,8 +135,10 @@ export class CanvasCommandService {
     const userId = this.userId; // Capture for TypeScript type narrowing
 
     try {
-      // Acquire lock for first shape (simplified locking)
-      if (shapeIds.length > 0) {
+      // Acquire locks for ALL shapes being updated
+      if (shapeIds.length > 1) {
+        await this.lockManager.batchAcquireActiveLocks(shapeIds);
+      } else if (shapeIds.length === 1) {
         await this.lockManager.acquireActiveLock(shapeIds[0]);
       }
 
@@ -143,8 +149,8 @@ export class CanvasCommandService {
         )
       );
 
-      // Release lock
-      await this.lockManager.releaseActiveLock();
+      // Note: We do NOT release locks here because shapes are still selected
+      // Locks will be released when shapes are deselected
 
       useUIStore.getState().showToast("Color updated", "success");
     } catch (error) {
@@ -366,8 +372,10 @@ export class CanvasCommandService {
     try {
       const { getObjectById } = useCanvasStore.getState();
 
-      // Lock first shape
-      if (shapeIds.length > 0) {
+      // Acquire locks for ALL shapes being moved
+      if (shapeIds.length > 1) {
+        await this.lockManager.batchAcquireActiveLocks(shapeIds);
+      } else if (shapeIds.length === 1) {
         await this.lockManager.acquireActiveLock(shapeIds[0]);
       }
 
@@ -388,8 +396,8 @@ export class CanvasCommandService {
         })
       );
 
-      // Release lock
-      await this.lockManager.releaseActiveLock();
+      // Note: We do NOT release locks here because shapes are still selected
+      // Locks will be released when shapes are deselected
     } catch (error) {
       console.error("Error moving shapes:", error);
       throw error;
@@ -449,8 +457,8 @@ export class CanvasCommandService {
         );
       }
 
-      // Release lock after transformation
-      await this.lockManager.releaseActiveLock();
+      // Note: We do NOT release locks here because shapes are still selected
+      // Locks will be released when shapes are deselected
     } catch (error) {
       console.error("Error transforming shapes:", error);
       useUIStore.getState().showToast("Failed to transform shapes", "error");

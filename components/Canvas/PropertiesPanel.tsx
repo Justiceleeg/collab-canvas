@@ -80,7 +80,7 @@ export default function PropertiesPanel() {
         fontStyle: selectedShape.fontStyle || "normal",
       });
     }
-  }, [selectedShape?.id]); // Only reset when selection ID changes
+  }, [selectedShape]); // Reset when shape or its properties change
 
   // Debounced update function - updates Firestore
   const updateShapeDebounced = useCallback(
@@ -112,7 +112,7 @@ export default function PropertiesPanel() {
         }
       }, 150); // 150ms debounce
     },
-    [selectedShape?.id, user?.uid]
+    [selectedShape, user?.uid]
   );
 
   // Immediate update function - for discrete actions like color changes
@@ -142,7 +142,7 @@ export default function PropertiesPanel() {
         console.error("Error updating shape properties:", error);
       }
     },
-    [selectedShape?.id, user?.uid]
+    [selectedShape, user?.uid]
   );
 
   // Cleanup on unmount

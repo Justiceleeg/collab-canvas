@@ -49,8 +49,7 @@ export default function Canvas() {
 
   // Locking system
   const lockManager = useActiveLock();
-  const { acquireActiveLock, releaseActiveLock, isLocked, getLockInfo } =
-    lockManager;
+  const { releaseActiveLock, isLocked, getLockInfo } = lockManager;
 
   // Selection state
   const { selectedIds, setSelectedIds } = useSelectionStore();
@@ -124,20 +123,21 @@ export default function Canvas() {
           ];
           setSelectedIds(newSelectedIds);
 
-          // Acquire locks for newly selected shapes
-          for (const id of shapeIdsInBox) {
-            if (!selectedIds.includes(id)) {
-              await acquireActiveLock(id);
-            }
+          // Batch acquire locks for newly selected shapes
+          const newShapeIds = shapeIdsInBox.filter(
+            (id) => !selectedIds.includes(id)
+          );
+          if (newShapeIds.length > 0) {
+            await lockManager.batchAcquireActiveLocks(newShapeIds);
           }
         } else {
           // Replace selection
           await releaseActiveLock();
           setSelectedIds(shapeIdsInBox);
 
-          // Acquire lock for first shape (simplified locking)
+          // Batch acquire locks for all selected shapes
           if (shapeIdsInBox.length > 0) {
-            await acquireActiveLock(shapeIdsInBox[0]);
+            await lockManager.batchAcquireActiveLocks(shapeIdsInBox);
           }
         }
       }
@@ -146,7 +146,7 @@ export default function Canvas() {
       objects,
       selectedIds,
       setSelectedIds,
-      acquireActiveLock,
+      lockManager,
       releaseActiveLock,
       stageRef,
       shapeInteractions,
@@ -185,7 +185,10 @@ export default function Canvas() {
   // Release locks when selection is cleared externally
   useEffect(() => {
     if (selectedIds.length === 0) {
-      releaseActiveLock();
+      // Fire-and-forget lock release - errors are logged internally
+      releaseActiveLock().catch((err) =>
+        console.error("Failed to release locks on deselect:", err)
+      );
     }
   }, [selectedIds.length, releaseActiveLock]);
 

@@ -21,7 +21,7 @@ export const SHAPES = {
 
 export const TIMING = {
   CURSOR_DEBOUNCE_MS: 30, // Increased from 15ms to reduce network traffic while maintaining smooth feel
-  LOCK_STALE_THRESHOLD_MS: 5000,
+  LOCK_STALE_THRESHOLD_MS: 10000, // Matches LOCK_TIMEOUT_MS in lock.types.ts
   RETRY_MAX_DELAY_MS: 30000,
   RETRY_BASE_DELAY_MS: 1000,
 } as const;

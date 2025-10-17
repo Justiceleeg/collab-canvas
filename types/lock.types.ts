@@ -20,4 +20,4 @@ export interface LockResult {
 }
 
 // Lock timeout configuration (milliseconds)
-export const LOCK_TIMEOUT_MS = 5000; // 5 seconds
+export const LOCK_TIMEOUT_MS = 10000; // 10 seconds

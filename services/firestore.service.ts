@@ -26,6 +26,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { CanvasObject } from "@/types/canvas.types";
+import { LOCK_TIMEOUT_MS } from "@/types/lock.types";
 
 const CANVAS_OBJECTS_COLLECTION = "canvasObjects";
 
@@ -197,7 +198,7 @@ export const firestoreService = {
       const docRef = doc(db, CANVAS_OBJECTS_COLLECTION, id);
       await updateDoc(docRef, {
         lockedBy: userId,
-        lockedAt: serverTimestamp(),
+        lockedAt: Date.now(), // Use Date.now() for consistency with lock checking
         lastUpdatedBy: userId,
         updatedAt: serverTimestamp(),
       });
@@ -221,6 +222,133 @@ export const firestoreService = {
       });
     } catch (error) {
       console.error("Error unlocking canvas object:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Batch acquire locks on multiple objects using transaction
+   * Returns array of results for each object
+   */
+  async batchAcquireLocks(
+    objectIds: string[],
+    userId: string
+  ): Promise<Array<{ id: string; success: boolean; reason?: string }>> {
+    if (objectIds.length === 0) {
+      return [];
+    }
+
+    try {
+      const results = await runTransaction(db, async (transaction) => {
+        const results: Array<{
+          id: string;
+          success: boolean;
+          reason?: string;
+        }> = [];
+
+        // Fetch all objects
+        const objectRefs = objectIds.map((id) =>
+          doc(db, CANVAS_OBJECTS_COLLECTION, id)
+        );
+        const objectDocs = await Promise.all(
+          objectRefs.map((ref) => transaction.get(ref))
+        );
+
+        // Check each object and prepare lock updates
+        for (let i = 0; i < objectIds.length; i++) {
+          const objectId = objectIds[i];
+          const objectDoc = objectDocs[i];
+          const objectRef = objectRefs[i];
+
+          if (!objectDoc.exists()) {
+            results.push({ id: objectId, success: false, reason: "not_found" });
+            continue;
+          }
+
+          const data = objectDoc.data();
+
+          // Check if object is already locked by someone else
+          if (data.lockedBy && data.lockedBy !== userId) {
+            // Check if lock is stale using configured timeout
+            // Use numeric timestamp for consistency with single lock acquisition
+            const lockedAt = data.lockedAt || 0;
+            const now = Date.now();
+            const lockAge = now - lockedAt;
+
+            if (lockAge < LOCK_TIMEOUT_MS) {
+              // Lock is still fresh, cannot acquire
+              console.warn(
+                `[Firestore] Lock on ${objectId} is held by ${data.lockedBy} (age: ${lockAge}ms)`
+              );
+              results.push({
+                id: objectId,
+                success: false,
+                reason: "already_locked",
+              });
+              continue;
+            }
+            // Lock is stale, will override
+            console.log(
+              `[Firestore] Overriding stale lock on ${objectId} (age: ${lockAge}ms)`
+            );
+          }
+
+          // Acquire lock using Date.now() for consistency and immediate readability
+          const now = Date.now();
+          transaction.update(objectRef, {
+            lockedBy: userId,
+            lockedAt: now,
+            lastUpdatedBy: userId,
+            updatedAt: serverTimestamp(),
+          });
+
+          console.log(
+            `[Firestore] Acquired lock on ${objectId} for user ${userId}`
+          );
+          results.push({ id: objectId, success: true });
+        }
+
+        return results;
+      });
+
+      return results;
+    } catch (error) {
+      console.error("Error batch acquiring locks:", error);
+      // Return all failures
+      return objectIds.map((id) => ({
+        id,
+        success: false,
+        reason: "error",
+      }));
+    }
+  },
+
+  /**
+   * Batch release locks on multiple objects
+   */
+  async batchReleaseLocks(objectIds: string[], userId: string): Promise<void> {
+    if (objectIds.length === 0) {
+      return;
+    }
+
+    try {
+      const batch = writeBatch(db);
+
+      objectIds.forEach((id) => {
+        const docRef = doc(db, CANVAS_OBJECTS_COLLECTION, id);
+        batch.update(docRef, {
+          lockedBy: null,
+          lockedAt: null,
+          lastUpdatedBy: userId,
+          updatedAt: serverTimestamp(),
+        });
+        console.log(`[Firestore] Released lock on ${id}`);
+      });
+
+      await batch.commit();
+      console.log(`[Firestore] Batch released ${objectIds.length} locks`);
+    } catch (error) {
+      console.error("Error batch releasing locks:", error);
       throw error;
     }
   },
@@ -340,12 +468,12 @@ export const firestoreService = {
 
         // Check if object is already locked by someone else
         if (data.lockedBy && data.lockedBy !== userId) {
-          // Check if lock is stale (older than 5 seconds)
+          // Check if lock is stale using configured timeout
           const lockedAt = data.lockedAt?.toDate?.() || new Date(0);
           const now = new Date();
           const lockAge = now.getTime() - lockedAt.getTime();
 
-          if (lockAge < 5000) {
+          if (lockAge < LOCK_TIMEOUT_MS) {
             // Lock is still fresh, cannot acquire
             return false;
           }

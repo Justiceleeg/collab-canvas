@@ -12,6 +12,7 @@ import { useCanvasStore } from "@/store/canvasStore";
 import { lockManager } from "@/utils/lockManager";
 import { LockResult } from "@/types/lock.types";
 import { usePresence } from "@/hooks/usePresence";
+import { firestoreService } from "@/services/firestore.service";
 
 export function useLocking() {
   const { user } = useAuth();
@@ -191,10 +192,77 @@ export function useLocking() {
     [getObjectById, onlineUsers, user]
   );
 
+  /**
+   * Batch acquire locks on multiple objects
+   * Returns array of results for each object
+   */
+  const batchAcquireLocks = useCallback(
+    async (
+      objectIds: string[]
+    ): Promise<Array<{ id: string; success: boolean; reason?: string }>> => {
+      if (!user) {
+        return objectIds.map((id) => ({
+          id,
+          success: false,
+          reason: "no_user",
+        }));
+      }
+
+      // Filter out temporary objects
+      const realObjectIds = objectIds.filter((id) => !id.startsWith("temp-"));
+      if (realObjectIds.length === 0) {
+        return objectIds.map((id) => ({ id, success: true }));
+      }
+
+      try {
+        const results = await firestoreService.batchAcquireLocks(
+          realObjectIds,
+          user.uid
+        );
+        return results;
+      } catch (error) {
+        console.error("Error batch acquiring locks:", error);
+        return realObjectIds.map((id) => ({
+          id,
+          success: false,
+          reason: "error",
+        }));
+      }
+    },
+    [user]
+  );
+
+  /**
+   * Batch release locks on multiple objects
+   */
+  const batchReleaseLocks = useCallback(
+    async (objectIds: string[]): Promise<void> => {
+      if (!user) return;
+
+      // Filter out temporary objects and objects that don't exist
+      const realObjectIds = objectIds.filter((id) => {
+        if (id.startsWith("temp-")) return false;
+        const object = getObjectById(id);
+        return object !== undefined;
+      });
+
+      if (realObjectIds.length === 0) return;
+
+      try {
+        await firestoreService.batchReleaseLocks(realObjectIds, user.uid);
+      } catch (error) {
+        console.error("Error batch releasing locks:", error);
+      }
+    },
+    [user, getObjectById]
+  );
+
   return {
     acquireLock,
     releaseLock,
     isLocked,
     getLockInfo,
+    batchAcquireLocks,
+    batchReleaseLocks,
   };
 }
