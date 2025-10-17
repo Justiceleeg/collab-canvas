@@ -133,12 +133,13 @@ export function useShapeInteractions({
       const originalX = draggedShape.x;
       const originalY = draggedShape.y;
 
-      // Handle circle positioning (center vs top-left)
-      if (draggedShape.type === "circle") {
-        const radiusX = (draggedShape.width || 0) / 2;
-        const radiusY = (draggedShape.height || 0) / 2;
-        newX = newX - radiusX;
-        newY = newY - radiusY;
+      // Handle circle and rectangle positioning (center vs top-left)
+      // Both are now positioned by center for consistent rotation behavior
+      if (draggedShape.type === "circle" || draggedShape.type === "rectangle") {
+        const halfWidth = (draggedShape.width || 0) / 2;
+        const halfHeight = (draggedShape.height || 0) / 2;
+        newX = newX - halfWidth;
+        newY = newY - halfHeight;
       }
 
       const deltaX = newX - originalX;

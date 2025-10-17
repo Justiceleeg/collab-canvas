@@ -26,7 +26,9 @@ collab-canvas/
 │   │   ├── SelectionBox.tsx              # Multi-select rectangle
 │   │   ├── Cursors.tsx                   # Multiplayer cursors
 │   │   ├── ContextMenu.tsx               # Right-click context menu
-│   │   └── Toast.tsx                     # Toast notifications
+│   │   ├── Toast.tsx                     # Toast notifications
+│   │   ├── PropertiesPanel.tsx           # Shape properties editor panel
+│   │   └── ColorPicker.tsx               # Color picker component
 │   ├── Toolbar/
 │   │   ├── Toolbar.tsx                   # Main toolbar
 │   │   ├── ShapeTools.tsx                # Shape creation buttons
@@ -838,7 +840,113 @@ presence system.
 
 ---
 
-### **PR #16: Duplicate & Delete Operations** 🗑️📋 ✅
+### **PR #16: Properties Panel** 🎨 ✅
+
+**Priority:** MEDIUM (Enhanced editing)\
+**Estimated Time:** 4-5 hours\
+**Status:** COMPLETED
+
+#### Tasks:
+
+1. **Add properties panel state management** ✅
+   - Files: `store/uiStore.ts`
+   - Track properties panel open/closed state
+   - Panel defaults to closed on page load
+   - Track which shape is being edited (single selection only)
+
+2. **Create PropertiesPanel component** ✅
+   - Files: `components/Canvas/PropertiesPanel.tsx`
+   - Collapsible panel on right side (~280-320px width)
+   - Defaults to collapsed on page load
+   - Collapse/expand button
+   - Only shows when exactly one shape is selected
+   - Shows "No selection" or "Multiple selected" message otherwise
+
+3. **Implement common shape properties** ✅
+   - Files: `components/Canvas/PropertiesPanel.tsx`
+   - Position inputs: x, y (number inputs)
+   - Size inputs: width, height (number inputs)
+   - Rotation input: rotation in degrees (0-360, number input)
+   - Opacity slider: 0-1 or 0-100% (slider + number input)
+   - Fill color picker with visual color picker UI
+   - Stroke/border color picker with visual color picker UI
+   - Stroke width input (number input)
+
+4. **Implement text-specific properties** ✅
+   - Files: `components/Canvas/PropertiesPanel.tsx`
+   - Text content textarea (auto-resize)
+   - Bold toggle button
+   - Italics toggle button
+   - Font size input (number input)
+   - Note: Text shapes don't show stroke properties
+
+5. **Add color picker component** ✅
+   - Files: `components/Canvas/ColorPicker.tsx`
+   - Visual color picker UI (consider using `react-colorful` or similar)
+   - Hex input field
+   - Recent colors display (optional)
+   - Swatch for current color
+
+6. **Implement real-time updates with debouncing** ✅
+   - Files: `components/Canvas/PropertiesPanel.tsx`, `services/canvasCommands.ts`
+   - Debounce numeric inputs (100-150ms) to avoid excessive Firestore writes
+   - Apply changes immediately to local store (optimistic)
+   - Sync to Firestore after debounce
+   - Color picker updates apply immediately (already discrete actions)
+
+7. **Add property update commands** ✅
+   - Files: `services/canvasCommands.ts`
+   - `updateShapeProperties(shapeId, properties)` method
+   - Handle all property types (position, size, color, text, etc.)
+   - Validate input ranges (e.g., opacity 0-1, rotation 0-360)
+   - Show toast notifications on error
+
+8. **Integrate with canvas types** ✅
+   - Files: `types/canvas.types.ts`
+   - Add optional properties: `strokeColor`, `strokeWidth`, `opacity`, `fontWeight`, `fontStyle`
+   - Update Shape type to include these fields
+   - Provide sensible defaults
+
+9. **Update shape rendering** ✅
+   - Files: `components/Canvas/Rectangle.tsx`, `Circle.tsx`, `Text.tsx`
+   - Apply stroke color and width to shapes
+   - Apply opacity to all shapes
+   - Apply bold/italics to text (fontWeight: 'bold', fontStyle: 'italic')
+   - Ensure Konva props are correctly passed
+
+10. **Integrate PropertiesPanel into Canvas** ✅
+    - Files: `components/Canvas/Canvas.tsx`
+    - Mount PropertiesPanel component
+    - Position on right side of canvas
+    - Pass selected shape data
+    - Ensure panel doesn't overlap with toolbar or layer panel
+
+11. **Auto-open on selection (optional UX enhancement)** ✅
+    - Files: `components/Canvas/Canvas.tsx`, `store/uiStore.ts`
+    - Optionally auto-open panel when user selects a shape
+    - Or keep manual toggle only - your choice during implementation
+
+12. **Add keyboard shortcut** ✅
+    - Files: `hooks/useKeyboardShortcuts.ts`
+    - Toggle properties panel with `P` key or `Cmd/Ctrl+;`
+
+#### Deliverable:
+
+- ✅ Collapsible properties panel on right side (defaults to closed)
+- ✅ Only shows when exactly one shape is selected
+- ✅ Edit position (x, y), size (width, height), rotation for all shapes
+- ✅ Edit fill color, stroke color, stroke width, opacity for rectangles and circles
+- ✅ Edit text content, bold, italics, font size for text shapes
+- ✅ Visual color picker for color properties
+- ✅ Real-time updates with debouncing (100-150ms)
+- ✅ All property changes sync to Firestore
+- ✅ Changes sync across users in real-time
+- ✅ Keyboard shortcut to toggle panel
+- ✅ Clean, Figma-inspired UI design
+
+---
+
+### **PR #17: Duplicate & Delete Operations** 🗑️📋 ✅
 
 **Priority:** MEDIUM (Basic operations)\
 **Estimated Time:** 2-3 hours\
@@ -887,7 +995,7 @@ presence system.
 
 ---
 
-### **PR #17: Performance Monitoring & Optimization** ⚡
+### **PR #18: Performance Monitoring & Optimization** ⚡
 
 **Priority:** HIGH (Non-functional requirement)\
 **Estimated Time:** 3-4 hours
@@ -935,7 +1043,7 @@ presence system.
 
 ---
 
-### **PR #18: Polish & Error Handling** ✨
+### **PR #19: Polish & Error Handling** ✨
 
 **Priority:** MEDIUM (User experience)\
 **Estimated Time:** 3-4 hours
@@ -984,7 +1092,7 @@ presence system.
 
 ---
 
-### **PR #19: Testing & Documentation** 📚
+### **PR #20: Testing & Documentation** 📚
 
 **Priority:** HIGH (Validation)\
 **Estimated Time:** 3-4 hours
@@ -1032,7 +1140,7 @@ presence system.
 
 ---
 
-### **PR #20: Architecture Refactor (4-Tier System)** 🏗️ ✅
+### **PR #21: Architecture Refactor (4-Tier System)** 🏗️ ✅
 
 **Priority:** HIGH (Code quality & maintainability)\
 **Estimated Time:** 4-5 hours\
@@ -1132,13 +1240,14 @@ presence system.
 | 13   | Multi-Select (Shift-Click)      | MEDIUM   | 3-4h     | 42.5-55.5h            |
 | 14   | Drag-to-Select                  | MEDIUM   | 3-4h     | 45.5-59.5h            |
 | 15   | Layer Management                | MEDIUM   | 3-4h     | 48.5-63.5h            |
-| 16   | Duplicate & Delete              | MEDIUM   | 2-3h     | 50.5-66.5h            |
-| 17   | Performance Monitoring          | HIGH     | 3-4h     | 53.5-70.5h            |
-| 18   | Polish & Error Handling         | MEDIUM   | 3-4h     | 56.5-74.5h            |
-| 19   | Testing & Documentation         | HIGH     | 3-4h     | 59.5-78.5h            |
-| 20   | Architecture Refactor (4-Tier)  | HIGH     | 4-5h     | 63.5-83.5h ✅         |
+| 16   | Properties Panel                | MEDIUM   | 4-5h     | 52.5-68.5h            |
+| 17   | Duplicate & Delete              | MEDIUM   | 2-3h     | 54.5-71.5h            |
+| 18   | Performance Monitoring          | HIGH     | 3-4h     | 57.5-75.5h            |
+| 19   | Polish & Error Handling         | MEDIUM   | 3-4h     | 60.5-79.5h            |
+| 20   | Testing & Documentation         | HIGH     | 3-4h     | 63.5-83.5h            |
+| 21   | Architecture Refactor (4-Tier)  | HIGH     | 4-5h     | 67.5-88.5h ✅         |
 
-**Total Estimated Time:** 63.5-83.5 hours (8-10.5 working days for 1 developer)
+**Total Estimated Time:** 67.5-88.5 hours (8.5-11 working days for 1 developer)
 
 **MVP Checkpoint:** After PR #9 (~30.5-39.5 hours) you'll have a complete MVP
 with all critical features: canvas, shapes, real-time sync, locking, and
@@ -1353,9 +1462,14 @@ to be accessible in client components.
   width: number,
   height: number,
   rotation: number,              // degrees, default 0
-  color: string,                 // hex color
+  color: string,                 // hex color (fill color)
+  strokeColor?: string,          // border/stroke color (optional)
+  strokeWidth?: number,          // border/stroke width (optional, default 0)
+  opacity?: number,              // 0-1, default 1 (optional)
   text?: string,                 // only for text objects
   fontSize?: number,             // only for text objects
+  fontWeight?: string,           // 'normal' | 'bold' (only for text)
+  fontStyle?: string,            // 'normal' | 'italic' (only for text)
   zIndex: number,                // layer order
   lockedBy: string | null,       // user ID or null
   lockedAt: Timestamp | null,    // Firebase Timestamp or null
@@ -1567,6 +1681,7 @@ Before submitting for evaluation:
 - [ ] Transform works (move, resize, rotate)
 - [ ] Duplicate and delete work
 - [ ] Layer management works
+- [ ] Properties panel allows editing shape properties
 - [ ] Real-time sync works with 2+ users
 - [ ] Multiplayer cursors visible with names
 - [ ] Presence awareness accurate

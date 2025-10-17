@@ -170,8 +170,16 @@ export default function LayerPanel({ userId }: LayerPanelProps) {
     );
   }
 
+  // Prevent wheel events from propagating to canvas (which would zoom)
+  const handleWheel = (e: React.WheelEvent) => {
+    e.stopPropagation();
+  };
+
   return (
-    <div className="fixed left-4 top-20 z-30 bg-white rounded-lg shadow-xl border border-gray-200 w-[200px] max-h-[calc(100vh-120px)] flex flex-col">
+    <div
+      className="fixed left-4 top-20 z-30 bg-white rounded-lg shadow-xl border border-gray-200 w-[200px] max-h-[calc(100vh-120px)] flex flex-col"
+      onWheel={handleWheel}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200">
         <h3 className="text-sm font-semibold text-gray-700">Layers</h3>

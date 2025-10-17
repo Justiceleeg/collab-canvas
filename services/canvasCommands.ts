@@ -420,17 +420,18 @@ export class CanvasCommandService {
         const shape = getObjectById(transformed.id);
         if (!shape) continue;
 
-        // Handle circle/ellipse positioning (center vs top-left)
+        // Handle circle and rectangle positioning (center vs top-left)
+        // Both are positioned by center for consistent rotation behavior
         let finalX = transformed.x;
         let finalY = transformed.y;
         let finalWidth = transformed.width;
         let finalHeight = transformed.height;
 
-        if (shape.type === "circle") {
-          const radiusX = transformed.width / 2;
-          const radiusY = transformed.height / 2;
-          finalX = transformed.x - radiusX;
-          finalY = transformed.y - radiusY;
+        if (shape.type === "circle" || shape.type === "rectangle") {
+          const halfWidth = transformed.width / 2;
+          const halfHeight = transformed.height / 2;
+          finalX = transformed.x - halfWidth;
+          finalY = transformed.y - halfHeight;
           finalWidth = transformed.width;
           finalHeight = transformed.height;
         }
@@ -470,6 +471,63 @@ export class CanvasCommandService {
     } catch (error) {
       console.error("Error updating text:", error);
       useUIStore.getState().showToast("Failed to update text", "error");
+      throw error;
+    }
+  }
+
+  /**
+   * Update shape properties (for properties panel)
+   * Validates inputs and updates Firestore
+   */
+  async updateShapeProperties(
+    shapeId: string,
+    properties: Partial<CanvasObject>
+  ): Promise<void> {
+    if (!this.userId) return;
+
+    const userId = this.userId; // Capture for TypeScript type narrowing
+
+    try {
+      // Validate numeric ranges
+      const validatedProperties: Partial<CanvasObject> = { ...properties };
+
+      // Validate opacity (0-1)
+      if (validatedProperties.opacity !== undefined) {
+        validatedProperties.opacity = Math.max(
+          0,
+          Math.min(1, validatedProperties.opacity)
+        );
+      }
+
+      // Validate rotation (0-360)
+      if (validatedProperties.rotation !== undefined) {
+        validatedProperties.rotation = validatedProperties.rotation % 360;
+        if (validatedProperties.rotation < 0) {
+          validatedProperties.rotation += 360;
+        }
+      }
+
+      // Validate dimensions (minimum 1)
+      if (validatedProperties.width !== undefined) {
+        validatedProperties.width = Math.max(1, validatedProperties.width);
+      }
+      if (validatedProperties.height !== undefined) {
+        validatedProperties.height = Math.max(1, validatedProperties.height);
+      }
+
+      // Validate stroke width (minimum 0)
+      if (validatedProperties.strokeWidth !== undefined) {
+        validatedProperties.strokeWidth = Math.max(
+          0,
+          validatedProperties.strokeWidth
+        );
+      }
+
+      // Update in Firestore
+      await firestoreService.updateObject(shapeId, validatedProperties, userId);
+    } catch (error) {
+      console.error("Error updating shape properties:", error);
+      useUIStore.getState().showToast("Failed to update properties", "error");
       throw error;
     }
   }

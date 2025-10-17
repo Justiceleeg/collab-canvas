@@ -75,6 +75,13 @@ interface UIStore {
   };
   toggleLayerPanel: () => void;
   setLayerPanelOpen: (isOpen: boolean) => void;
+
+  // Properties panel state
+  propertiesPanel: {
+    isOpen: boolean;
+  };
+  togglePropertiesPanel: () => void;
+  setPropertiesPanelOpen: (isOpen: boolean) => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -228,6 +235,27 @@ export const useUIStore = create<UIStore>((set) => ({
   setLayerPanelOpen: (isOpen) => {
     set({
       layerPanel: {
+        isOpen,
+      },
+    });
+  },
+
+  // Properties panel initial state (defaults to closed)
+  propertiesPanel: {
+    isOpen: false,
+  },
+
+  togglePropertiesPanel: () => {
+    set((state) => ({
+      propertiesPanel: {
+        isOpen: !state.propertiesPanel.isOpen,
+      },
+    }));
+  },
+
+  setPropertiesPanelOpen: (isOpen) => {
+    set({
+      propertiesPanel: {
         isOpen,
       },
     });

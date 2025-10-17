@@ -34,35 +34,30 @@ export default function Circle({
   const radiusX = shape.width / 2;
   const radiusY = shape.height / 2;
 
-  // PR #8/#14 - Determine stroke color and style based on selection/lock status
-  const getStrokeProps = () => {
-    // Locked by another user - show their color
-    if (isLocked && lockInfo && !lockInfo.isOwnLock) {
-      return {
-        stroke: lockInfo.color,
-        strokeWidth: 2,
-        dash: undefined,
-      };
-    }
+  // Determine base stroke (shape's own stroke)
+  const hasShapeStroke = shape.strokeWidth && shape.strokeWidth > 0;
+  const shapeStroke = hasShapeStroke
+    ? shape.strokeColor || "#000000"
+    : undefined;
+  const shapeStrokeWidth = hasShapeStroke ? shape.strokeWidth : 0;
 
-    // PR #14 - Selected - show blue solid border
-    if (isSelected) {
-      return {
-        stroke: "rgba(0, 102, 255, 0.8)",
-        strokeWidth: 2,
-        dash: undefined,
-      };
-    }
+  // Determine selection/lock stroke (overlays on top)
+  let selectionStroke = undefined;
+  let selectionStrokeWidth = 0;
 
-    // No stroke
-    return {
-      stroke: undefined,
-      strokeWidth: 0,
-      dash: undefined,
-    };
-  };
+  if (isLocked && lockInfo && !lockInfo.isOwnLock) {
+    selectionStroke = lockInfo.color;
+    selectionStrokeWidth = 2;
+  } else if (isSelected) {
+    selectionStroke = "rgba(0, 102, 255, 0.8)";
+    selectionStrokeWidth = 2;
+  }
 
-  const strokeProps = getStrokeProps();
+  // Combine both strokes - use selection stroke if present, otherwise shape stroke
+  const finalStroke = selectionStroke || shapeStroke;
+  const finalStrokeWidth = selectionStroke
+    ? selectionStrokeWidth
+    : shapeStrokeWidth;
 
   return (
     <KonvaEllipse
@@ -73,16 +68,16 @@ export default function Circle({
       radiusY={radiusY} // Vertical radius
       fill={shape.color}
       rotation={shape.rotation || 0}
+      opacity={shape.opacity !== undefined ? shape.opacity : 1} // PR #16 - Opacity support
       draggable={!isLocked} // PR #8 - Disable drag if locked by another user
       onClick={onClick}
       onTap={onClick}
       onDragStart={onDragStart} // PR #8
       onDragEnd={onDragEnd} // Parent Canvas.tsx handles coordinate conversion
       onContextMenu={onContextMenu} // Right-click context menu
-      // Visual feedback for selection/lock status
-      stroke={strokeProps.stroke}
-      strokeWidth={strokeProps.strokeWidth}
-      dash={strokeProps.dash}
+      // Stroke properties
+      stroke={finalStroke}
+      strokeWidth={finalStrokeWidth}
       // Performance optimizations
       perfectDrawEnabled={false}
       listening={true}

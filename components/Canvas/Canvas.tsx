@@ -23,6 +23,7 @@ import TextEditor from "./TextEditor";
 import ContextMenu from "./ContextMenu";
 import Toast from "./Toast";
 import LayerPanel from "./LayerPanel";
+import PropertiesPanel from "./PropertiesPanel";
 import { Text } from "react-konva";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useAuth } from "@/hooks/useAuth";
@@ -346,6 +347,9 @@ export default function Canvas() {
 
         {/* Layer Panel */}
         <LayerPanel userId={user?.uid} />
+
+        {/* Properties Panel */}
+        <PropertiesPanel />
       </div>
 
       {/* Connection status indicator */}
@@ -359,22 +363,22 @@ export default function Canvas() {
       )}
 
       {/* Viewport debug info */}
-      <div className="canvas-info">
-        <div className="text-xs text-gray-500 bg-white/90 px-3 py-2 rounded shadow">
-          <div>Zoom: {(viewport.scale * 100).toFixed(0)}%</div>
-          <div>
-            Position: ({viewport.x.toFixed(0)}, {viewport.y.toFixed(0)})
-          </div>
-          <div>Objects: {objects.length}</div>
-          <div className="flex items-center gap-1">
-            <span>Sync:</span>
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isConnected ? "bg-green-500" : "bg-yellow-500"
-              }`}
-            ></span>
-          </div>
+      <div className="absolute bottom-4 left-4 z-20 text-xs text-gray-500 flex items-center gap-3">
+        <div className="flex items-center gap-1">
+          <span>Sync:</span>
+          <span
+            className={`w-2 h-2 rounded-full ${
+              isConnected ? "bg-green-500" : "bg-yellow-500"
+            }`}
+          ></span>
         </div>
+        <span className="inline-block w-20">Objects: {objects.length}</span>
+        <span className="inline-block w-20">
+          Zoom: {(viewport.scale * 100).toFixed(0)}%
+        </span>
+        <span className="inline-block w-32">
+          Position: ({viewport.x.toFixed(0)}, {viewport.y.toFixed(0)})
+        </span>
       </div>
     </div>
   );

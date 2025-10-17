@@ -82,6 +82,7 @@ export default function Text({
       x={shape.x}
       y={shape.y}
       rotation={shape.rotation || 0}
+      opacity={shape.opacity !== undefined ? shape.opacity : 1} // PR #16 - Opacity support
       draggable={!isLocked && !isEditing}
       onClick={onClick}
       onTap={onClick}
@@ -116,6 +117,9 @@ export default function Text({
         text={shape.text || "New Text"}
         fontSize={shape.fontSize || 16}
         fontFamily="Arial, sans-serif"
+        fontStyle={`${shape.fontStyle || "normal"} ${
+          shape.fontWeight || "normal"
+        }`} // PR #16 - Bold/Italic support
         fill={shape.color}
         // Text rendering options
         align="left"

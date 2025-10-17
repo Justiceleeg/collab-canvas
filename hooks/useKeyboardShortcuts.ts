@@ -37,7 +37,7 @@ export function useKeyboardShortcuts({
   onEscapeKey,
 }: UseKeyboardShortcutsProps) {
   const { selectedIds, deselectAll } = useSelectionStore();
-  const { setModifier } = useUIStore();
+  const { setModifier, togglePropertiesPanel } = useUIStore();
 
   // Track modifier keys (Shift, Ctrl/Cmd, Alt)
   useEffect(() => {
@@ -171,14 +171,20 @@ export function useKeyboardShortcuts({
       }
 
       // Shift + ] or }: Bring forward
-      if ((e.key === "}" || (e.key === "]" && e.shiftKey)) && selectedIds.length > 0) {
+      if (
+        (e.key === "}" || (e.key === "]" && e.shiftKey)) &&
+        selectedIds.length > 0
+      ) {
         e.preventDefault();
         await commands.bringForward(selectedIds);
         return;
       }
 
       // Shift + [ or {: Send backward
-      if ((e.key === "{" || (e.key === "[" && e.shiftKey)) && selectedIds.length > 0) {
+      if (
+        (e.key === "{" || (e.key === "[" && e.shiftKey)) &&
+        selectedIds.length > 0
+      ) {
         e.preventDefault();
         await commands.sendBackward(selectedIds);
         return;
@@ -195,6 +201,13 @@ export function useKeyboardShortcuts({
       if (e.key === "[" && !e.shiftKey && selectedIds.length > 0) {
         e.preventDefault();
         await commands.sendToBack(selectedIds);
+        return;
+      }
+
+      // P: Toggle properties panel
+      if (e.key === "p" || e.key === "P") {
+        e.preventDefault();
+        togglePropertiesPanel();
         return;
       }
 
@@ -215,6 +228,7 @@ export function useKeyboardShortcuts({
     activeTool,
     onEscapeKey,
     deselectAll,
+    togglePropertiesPanel,
   ]);
 
   // Return current modifier state for components that need it
