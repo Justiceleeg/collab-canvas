@@ -7,22 +7,32 @@
 
 import React from "react";
 import { useCursors } from "@/hooks/useCursors";
+import { useCanvasStore } from "@/store/canvasStore";
 import UserCursor from "@/components/Presence/UserCursor";
 
 export default function Cursors() {
   const { cursors } = useCursors();
+  const { viewport } = useCanvasStore();
 
   return (
     <>
-      {cursors.map((cursor) => (
-        <UserCursor
-          key={cursor.userId}
-          x={cursor.x}
-          y={cursor.y}
-          displayName={cursor.displayName}
-          color={cursor.color}
-        />
-      ))}
+      {cursors.map((cursor) => {
+        // Convert canvas coordinates to screen coordinates based on local viewport
+        // cursor.x and cursor.y are in canvas space (world coordinates)
+        // We need to transform them to screen space for rendering
+        const screenX = cursor.x * viewport.scale + viewport.x;
+        const screenY = cursor.y * viewport.scale + viewport.y;
+
+        return (
+          <UserCursor
+            key={cursor.userId}
+            x={screenX}
+            y={screenY}
+            displayName={cursor.displayName}
+            color={cursor.color}
+          />
+        );
+      })}
     </>
   );
 }

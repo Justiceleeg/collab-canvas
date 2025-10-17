@@ -153,16 +153,8 @@ export default function Canvas() {
     ]
   );
 
-  // Track cursor movement for multiplayer
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      updateCursor(x, y);
-    },
-    [updateCursor]
-  );
+  // Cursor tracking is now handled by Stage component via onCursorMove callback
+  // Stage provides canvas coordinates directly from getRelativePointerPosition()
 
   // Text editing handlers
   const handleTextDblClick = useCallback((id: string) => {
@@ -255,7 +247,7 @@ export default function Canvas() {
       <BottomToolbar selectedTool={activeTool} onToolSelect={setActiveTool} />
 
       {/* Stage Wrapper */}
-      <div className="canvas-stage-wrapper" onMouseMove={handleMouseMove}>
+      <div className="canvas-stage-wrapper">
         {/* Canvas Stage */}
         <Stage
           width={dimensions.width}
@@ -263,6 +255,7 @@ export default function Canvas() {
           onStageClick={handleCanvasClickWithLockRelease}
           stageRef={stageRef}
           onSelectionBoxChange={handleSelectionBoxChange}
+          onCursorMove={updateCursor}
         >
           {/* Help text when canvas is empty */}
           {objects.length === 0 && (

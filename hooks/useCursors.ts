@@ -16,8 +16,8 @@ export interface CursorPosition {
   userId: string;
   displayName: string;
   color: string;
-  x: number;
-  y: number;
+  x: number; // Canvas coordinates (world space), not screen coordinates
+  y: number; // Canvas coordinates (world space), not screen coordinates
   timestamp: number;
 }
 

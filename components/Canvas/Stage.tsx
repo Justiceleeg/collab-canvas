@@ -28,6 +28,7 @@ interface StageProps {
       height: number;
     } | null
   ) => void;
+  onCursorMove?: (x: number, y: number) => void; // Canvas coordinates (world space)
 }
 
 export default function Stage({
@@ -37,6 +38,7 @@ export default function Stage({
   onStageClick,
   stageRef: externalStageRef,
   onSelectionBoxChange,
+  onCursorMove,
 }: StageProps) {
   const internalStageRef = useRef<Konva.Stage>(null);
   const stageRef = externalStageRef || internalStageRef;
@@ -184,6 +186,12 @@ export default function Stage({
 
     const pos = stage.getPointerPosition();
     if (!pos) return;
+
+    // Track cursor position in canvas space for multiplayer
+    const relativePos = stage.getRelativePointerPosition();
+    if (relativePos && onCursorMove) {
+      onCursorMove(relativePos.x, relativePos.y);
+    }
 
     // Handle panning
     if (isPanning.current) {
