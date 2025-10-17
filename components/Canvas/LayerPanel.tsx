@@ -8,7 +8,9 @@ import { useEffect, useRef, useState } from "react";
 import { useCanvasStore } from "@/store/canvasStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUIStore } from "@/store/uiStore";
-import { firestoreService } from "@/services/firestore.service";
+import { useCanvasCommands } from "@/services/canvasCommands";
+import { useActiveLock } from "@/hooks/useActiveLock";
+import { useAuth } from "@/hooks/useAuth";
 import type { CanvasObject } from "@/types/canvas.types";
 
 interface LayerPanelProps {
@@ -19,6 +21,11 @@ export default function LayerPanel({ userId }: LayerPanelProps) {
   const { layerPanel, toggleLayerPanel } = useUIStore();
   const { objects } = useCanvasStore();
   const { selectedIds, setSelectedIds } = useSelectionStore();
+  const { user } = useAuth();
+
+  // Get command service
+  const lockManager = useActiveLock();
+  const commands = useCanvasCommands(lockManager, user?.uid);
 
   const panelRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -106,17 +113,10 @@ export default function LayerPanel({ userId }: LayerPanelProps) {
     }));
 
     try {
-      // Update all shapes in parallel
-      await Promise.all(
-        updates.map((update) =>
-          firestoreService.updateObject(
-            update.id,
-            { zIndex: update.zIndex },
-            userId
-          )
-        )
-      );
+      // Use command service for reordering
+      await commands.reorderLayers(updates);
     } catch (error) {
+      // Command service already logs and shows toast
       console.error("Error reordering layers:", error);
     }
 

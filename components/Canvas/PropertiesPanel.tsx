@@ -7,6 +7,8 @@ import { useUIStore } from "@/store/uiStore";
 import { CanvasObject } from "@/types/canvas.types";
 import ColorPicker from "./ColorPicker";
 import { useAuth } from "@/hooks/useAuth";
+import { useCanvasCommands } from "@/services/canvasCommands";
+import { useActiveLock } from "@/hooks/useActiveLock";
 
 // Validation helper function
 function validatePropertyUpdates(
@@ -50,6 +52,10 @@ export default function PropertiesPanel() {
   const selectedIds = useSelectionStore((state) => state.selectedIds);
   const getObjectById = useCanvasStore((state) => state.getObjectById);
 
+  // Get command service
+  const lockManager = useActiveLock();
+  const commands = useCanvasCommands(lockManager, user?.uid);
+
   // Get selected shape (only if exactly one is selected)
   const selectedShape =
     selectedIds.length === 1 ? getObjectById(selectedIds[0]) : null;
@@ -82,10 +88,10 @@ export default function PropertiesPanel() {
     }
   }, [selectedShape]); // Reset when shape or its properties change
 
-  // Debounced update function - updates Firestore
+  // Debounced update function - updates Firestore via commands
   const updateShapeDebounced = useCallback(
     (updates: Partial<CanvasObject>) => {
-      if (!selectedShape || !user?.uid) return;
+      if (!selectedShape) return;
 
       // Clear existing timer
       if (debounceTimerRef.current) {
@@ -95,30 +101,21 @@ export default function PropertiesPanel() {
       // Set new timer
       debounceTimerRef.current = setTimeout(async () => {
         try {
-          // Import dynamically to avoid circular dependencies
-          const { firestoreService } = await import(
-            "@/services/firestore.service"
-          );
-
-          // Validate and update
-          const validatedUpdates = validatePropertyUpdates(updates);
-          await firestoreService.updateObject(
-            selectedShape.id,
-            validatedUpdates,
-            user.uid
-          );
+          // Use command service (includes validation and error handling)
+          await commands.updateShapeProperties(selectedShape.id, updates);
         } catch (error) {
+          // Command service already logs and shows toast
           console.error("Error updating shape properties:", error);
         }
       }, 150); // 150ms debounce
     },
-    [selectedShape, user?.uid]
+    [selectedShape, commands]
   );
 
   // Immediate update function - for discrete actions like color changes
   const updateShapeImmediate = useCallback(
     async (updates: Partial<CanvasObject>) => {
-      if (!selectedShape || !user?.uid) return;
+      if (!selectedShape) return;
 
       // Cancel any pending debounced updates
       if (debounceTimerRef.current) {
@@ -126,23 +123,14 @@ export default function PropertiesPanel() {
       }
 
       try {
-        // Import dynamically to avoid circular dependencies
-        const { firestoreService } = await import(
-          "@/services/firestore.service"
-        );
-
-        // Validate and update
-        const validatedUpdates = validatePropertyUpdates(updates);
-        await firestoreService.updateObject(
-          selectedShape.id,
-          validatedUpdates,
-          user.uid
-        );
+        // Use command service (includes validation and error handling)
+        await commands.updateShapeProperties(selectedShape.id, updates);
       } catch (error) {
+        // Command service already logs and shows toast
         console.error("Error updating shape properties:", error);
       }
     },
-    [selectedShape, user?.uid]
+    [selectedShape, commands]
   );
 
   // Cleanup on unmount

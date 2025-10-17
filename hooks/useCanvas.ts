@@ -10,8 +10,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useCanvasStore } from "@/store/canvasStore";
 import { useSelectionStore } from "@/store/selectionStore"; // PR #7 - Selection management
 import { ShapeType } from "@/types/canvas.types";
-import { firestoreService } from "@/services/firestore.service";
 import { useAuth } from "./useAuth";
+import { useCanvasCommands } from "@/services/canvasCommands";
+import { useActiveLock } from "./useActiveLock";
 import { CANVAS } from "@/utils/constants";
 import Konva from "konva";
 
@@ -20,9 +21,13 @@ export function useCanvas() {
   const [activeTool, setActiveTool] = useState<ShapeType | null>(null);
   const [isCreatingShape, setIsCreatingShape] = useState(false);
 
-  const { viewport, objects, createShapeData, addObject } = useCanvasStore();
+  const { viewport, objects } = useCanvasStore();
   const { deselectAll } = useSelectionStore(); // PR #7 - Use selection store
   const { user } = useAuth();
+
+  // Get command service
+  const lockManager = useActiveLock();
+  const commands = useCanvasCommands(lockManager, user?.uid);
 
   // Update canvas dimensions on window resize
   useEffect(() => {
@@ -83,32 +88,14 @@ export function useCanvas() {
           const canvasX = (pointerPosition.x - viewport.x) / viewport.scale;
           const canvasY = (pointerPosition.y - viewport.y) / viewport.scale;
 
-          // Create shape data
-          const shapeData = createShapeData(
-            activeTool,
-            { x: canvasX, y: canvasY },
-            user.uid
-          );
-
-          // Optimistically add to local store
-          const tempId = `temp-${Date.now()}`;
-          addObject({
-            ...shapeData,
-            id: tempId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          } as any);
-
-          // Save to Firestore
-          await firestoreService.createObject(shapeData, user.uid);
-
-          // The shape will be updated via Firestore sync hook
+          // Use command service to create shape
+          await commands.createShape(activeTool, { x: canvasX, y: canvasY });
 
           // Reset tool to selection mode after creating shape
           setActiveTool(null);
         } catch (error) {
           console.error("Error creating shape:", error);
-          // TODO: Show error toast (PR #18)
+          // Command service already shows toast
         } finally {
           setIsCreatingShape(false);
         }
@@ -117,15 +104,7 @@ export function useCanvas() {
         deselectAll();
       }
     },
-    [
-      activeTool,
-      user,
-      viewport,
-      createShapeData,
-      addObject,
-      isCreatingShape,
-      deselectAll,
-    ]
+    [activeTool, user, viewport, isCreatingShape, deselectAll, commands]
   );
 
   return {

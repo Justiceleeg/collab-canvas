@@ -7,7 +7,7 @@ import { firestoreService } from "./firestore.service";
 import { useCanvasStore } from "@/store/canvasStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUIStore } from "@/store/uiStore";
-import type { CanvasObject } from "@/types/canvas.types";
+import type { CanvasObject, ShapeType } from "@/types/canvas.types";
 import type Konva from "konva";
 
 export interface LockManager {
@@ -142,12 +142,27 @@ export class CanvasCommandService {
         await this.lockManager.acquireActiveLock(shapeIds[0]);
       }
 
-      // Update all shapes
-      await Promise.all(
-        shapeIds.map((id) =>
-          firestoreService.updateObject(id, { color }, userId)
-        )
-      );
+      // Build update data
+      const updates = shapeIds.map((id) => ({
+        id,
+        data: { color },
+      }));
+
+      // Optimistic local update
+      updates.forEach(({ id, data }) => {
+        useCanvasStore.getState().updateObject(id, data);
+      });
+
+      // Use batch update for multi-shape operations (atomic Firestore write)
+      if (updates.length > 1) {
+        await firestoreService.batchUpdateObjects(updates, userId);
+      } else {
+        await firestoreService.updateObject(
+          updates[0].id,
+          updates[0].data,
+          userId
+        );
+      }
 
       // Note: We do NOT release locks here because shapes are still selected
       // Locks will be released when shapes are deselected
@@ -172,16 +187,27 @@ export class CanvasCommandService {
       const { objects } = useCanvasStore.getState();
       const maxZIndex = Math.max(...objects.map((obj) => obj.zIndex || 0));
 
-      // Update z-index for all selected shapes
-      await Promise.all(
-        shapeIds.map((id, index) =>
-          firestoreService.updateObject(
-            id,
-            { zIndex: maxZIndex + index + 1 },
-            userId
-          )
-        )
-      );
+      // Build update data
+      const updates = shapeIds.map((id, index) => ({
+        id,
+        data: { zIndex: maxZIndex + index + 1 },
+      }));
+
+      // Optimistic local update
+      updates.forEach(({ id, data }) => {
+        useCanvasStore.getState().updateObject(id, data);
+      });
+
+      // Use batch update for multi-shape operations
+      if (updates.length > 1) {
+        await firestoreService.batchUpdateObjects(updates, userId);
+      } else {
+        await firestoreService.updateObject(
+          updates[0].id,
+          updates[0].data,
+          userId
+        );
+      }
 
       useUIStore.getState().showToast("Brought to front", "success");
     } catch (error) {
@@ -203,16 +229,27 @@ export class CanvasCommandService {
       const { objects } = useCanvasStore.getState();
       const minZIndex = Math.min(...objects.map((obj) => obj.zIndex || 0));
 
-      // Update z-index for all selected shapes
-      await Promise.all(
-        shapeIds.map((id, index) =>
-          firestoreService.updateObject(
-            id,
-            { zIndex: minZIndex - shapeIds.length + index },
-            userId
-          )
-        )
-      );
+      // Build update data
+      const updates = shapeIds.map((id, index) => ({
+        id,
+        data: { zIndex: minZIndex - shapeIds.length + index },
+      }));
+
+      // Optimistic local update
+      updates.forEach(({ id, data }) => {
+        useCanvasStore.getState().updateObject(id, data);
+      });
+
+      // Use batch update for multi-shape operations
+      if (updates.length > 1) {
+        await firestoreService.batchUpdateObjects(updates, userId);
+      } else {
+        await firestoreService.updateObject(
+          updates[0].id,
+          updates[0].data,
+          userId
+        );
+      }
 
       useUIStore.getState().showToast("Sent to back", "success");
     } catch (error) {
@@ -271,15 +308,27 @@ export class CanvasCommandService {
 
       // Apply all updates
       if (updates.length > 0) {
-        await Promise.all(
-          updates.map((update) =>
-            firestoreService.updateObject(
-              update.id,
-              { zIndex: update.zIndex },
-              userId
-            )
-          )
-        );
+        // Format for batch update
+        const batchUpdates = updates.map(({ id, zIndex }) => ({
+          id,
+          data: { zIndex },
+        }));
+
+        // Optimistic local update
+        batchUpdates.forEach(({ id, data }) => {
+          useCanvasStore.getState().updateObject(id, data);
+        });
+
+        // Use batch update for multi-shape operations
+        if (batchUpdates.length > 1) {
+          await firestoreService.batchUpdateObjects(batchUpdates, userId);
+        } else {
+          await firestoreService.updateObject(
+            batchUpdates[0].id,
+            batchUpdates[0].data,
+            userId
+          );
+        }
       }
 
       useUIStore.getState().showToast("Brought forward", "success");
@@ -339,15 +388,27 @@ export class CanvasCommandService {
 
       // Apply all updates
       if (updates.length > 0) {
-        await Promise.all(
-          updates.map((update) =>
-            firestoreService.updateObject(
-              update.id,
-              { zIndex: update.zIndex },
-              userId
-            )
-          )
-        );
+        // Format for batch update
+        const batchUpdates = updates.map(({ id, zIndex }) => ({
+          id,
+          data: { zIndex },
+        }));
+
+        // Optimistic local update
+        batchUpdates.forEach(({ id, data }) => {
+          useCanvasStore.getState().updateObject(id, data);
+        });
+
+        // Use batch update for multi-shape operations
+        if (batchUpdates.length > 1) {
+          await firestoreService.batchUpdateObjects(batchUpdates, userId);
+        } else {
+          await firestoreService.updateObject(
+            batchUpdates[0].id,
+            batchUpdates[0].data,
+            userId
+          );
+        }
       }
 
       useUIStore.getState().showToast("Sent backward", "success");
@@ -379,22 +440,44 @@ export class CanvasCommandService {
         await this.lockManager.acquireActiveLock(shapeIds[0]);
       }
 
-      // Move all shapes
-      await Promise.all(
-        shapeIds.map((id) => {
+      // Build update data for all shapes
+      const updates = shapeIds
+        .map((id) => {
           const shape = getObjectById(id);
-          if (!shape) return Promise.resolve();
+          if (!shape) return null;
 
-          return firestoreService.updateObject(
+          return {
             id,
-            {
+            data: {
               x: shape.x + delta.x,
               y: shape.y + delta.y,
             },
-            userId
-          );
+          };
         })
-      );
+        .filter(Boolean) as Array<{
+        id: string;
+        data: { x: number; y: number };
+      }>;
+
+      if (updates.length === 0) return;
+
+      // Optimistic local update for immediate feedback
+      updates.forEach(({ id, data }) => {
+        useCanvasStore.getState().updateObject(id, data);
+      });
+
+      // Use batch update for multi-shape operations (atomic Firestore write)
+      // This ensures all shapes appear simultaneously on remote screens
+      if (updates.length > 1) {
+        await firestoreService.batchUpdateObjects(updates, userId);
+      } else {
+        // Single shape: use regular update
+        await firestoreService.updateObject(
+          updates[0].id,
+          updates[0].data,
+          userId
+        );
+      }
 
       // Note: We do NOT release locks here because shapes are still selected
       // Locks will be released when shapes are deselected
@@ -553,6 +636,78 @@ export class CanvasCommandService {
   async groupShapes(shapeIds: string[]): Promise<void> {
     // TODO: Implement grouping in future PR
     useUIStore.getState().showToast("Grouping coming soon!", "info");
+  }
+
+  /**
+   * Create a new shape on the canvas
+   */
+  async createShape(
+    type: ShapeType,
+    position: { x: number; y: number }
+  ): Promise<CanvasObject | null> {
+    if (!this.userId) return null;
+
+    try {
+      const { createShapeData } = useCanvasStore.getState();
+
+      // Create shape data
+      const shapeData = createShapeData(type, position, this.userId);
+
+      // Create in Firestore
+      const newShape = await firestoreService.createObject(
+        shapeData,
+        this.userId
+      );
+
+      // Select the new shape
+      useSelectionStore.getState().setSelectedIds([newShape.id]);
+
+      return newShape;
+    } catch (error) {
+      console.error("Error creating shape:", error);
+      useUIStore.getState().showToast("Failed to create shape", "error");
+      throw error;
+    }
+  }
+
+  /**
+   * Reorder layers by updating zIndex values
+   * Used by LayerPanel for drag-to-reorder functionality
+   */
+  async reorderLayers(
+    newOrder: Array<{ id: string; zIndex: number }>
+  ): Promise<void> {
+    if (!this.userId || newOrder.length === 0) return;
+
+    const userId = this.userId;
+
+    try {
+      // Format for batch update
+      const updates = newOrder.map(({ id, zIndex }) => ({
+        id,
+        data: { zIndex },
+      }));
+
+      // Optimistic local update
+      updates.forEach(({ id, data }) => {
+        useCanvasStore.getState().updateObject(id, data);
+      });
+
+      // Use batch update for atomic Firestore write
+      if (updates.length > 1) {
+        await firestoreService.batchUpdateObjects(updates, userId);
+      } else {
+        await firestoreService.updateObject(
+          updates[0].id,
+          updates[0].data,
+          userId
+        );
+      }
+    } catch (error) {
+      console.error("Error reordering layers:", error);
+      useUIStore.getState().showToast("Failed to reorder layers", "error");
+      throw error;
+    }
   }
 
   /**
