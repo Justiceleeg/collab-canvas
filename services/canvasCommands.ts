@@ -544,7 +544,7 @@ export class CanvasCommandService {
    * Open properties tool window
    */
   openPropertiesPanel(shapeId: string): void {
-    useUIStore.getState().openToolWindow("properties", shapeId);
+    useUIStore.getState().setPropertiesPanelOpen(true);
   }
 
   /**
