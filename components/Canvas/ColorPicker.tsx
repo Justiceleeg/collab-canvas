@@ -63,7 +63,7 @@ export default function ColorPicker({
               onChange(color); // Reset to previous valid color
             }
           }}
-          className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+          className="flex-1 px-2 py-1.5 text-sm text-black border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
           placeholder="#000000"
           maxLength={7}
         />
