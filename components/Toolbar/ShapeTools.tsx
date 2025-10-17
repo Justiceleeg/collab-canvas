@@ -1,7 +1,7 @@
 "use client";
 
-// PR #6 - Rectangle Shape Creation & Rendering
 // Shape creation buttons for toolbar
+// Designed for bottom toolbar with dark theme
 
 export type ShapeToolType = "rectangle" | "circle" | "text" | null;
 
@@ -15,121 +15,120 @@ export default function ShapeTools({
   onToolSelect,
 }: ShapeToolsProps) {
   return (
-    <div className="shape-tools flex gap-2 items-center">
-      <span className="text-sm text-gray-600 font-medium mr-2">Shapes:</span>
-
+    <div className="shape-tools flex gap-1.5 items-center">
       {/* Rectangle Tool */}
       <button
         className={`tool-button ${
           selectedTool === "rectangle"
             ? "bg-blue-500 text-white"
-            : "bg-white text-gray-700 hover:bg-gray-100"
-        } px-4 py-2 rounded border border-gray-300 flex items-center gap-2 transition-colors`}
+            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+        } p-2 rounded-lg flex items-center justify-center transition-all hover:scale-105`}
         onClick={() =>
           onToolSelect(selectedTool === "rectangle" ? null : "rectangle")
         }
         title="Rectangle (R)"
       >
         <svg
-          width="20"
-          height="20"
-          viewBox="0 0 20 20"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <rect
-            x="3"
-            y="5"
-            width="14"
-            height="10"
+            x="4"
+            y="6"
+            width="16"
+            height="12"
             stroke="currentColor"
             strokeWidth="2"
             fill="none"
+            rx="2"
           />
         </svg>
-        <span className="text-sm">Rectangle</span>
       </button>
 
-      {/* Circle Tool - PR #10 */}
+      {/* Circle Tool */}
       <button
         className={`tool-button ${
           selectedTool === "circle"
             ? "bg-blue-500 text-white"
-            : "bg-white text-gray-700 hover:bg-gray-100"
-        } px-4 py-2 rounded border border-gray-300 flex items-center gap-2 transition-colors`}
+            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+        } p-2 rounded-lg flex items-center justify-center transition-all hover:scale-105`}
         onClick={() =>
           onToolSelect(selectedTool === "circle" ? null : "circle")
         }
         title="Circle (C)"
       >
         <svg
-          width="20"
-          height="20"
-          viewBox="0 0 20 20"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <circle
-            cx="10"
-            cy="10"
-            r="7"
+            cx="12"
+            cy="12"
+            r="8"
             stroke="currentColor"
             strokeWidth="2"
             fill="none"
           />
         </svg>
-        <span className="text-sm">Circle</span>
       </button>
 
-      {/* Text Tool - PR #11 */}
+      {/* Text Tool */}
       <button
         className={`tool-button ${
           selectedTool === "text"
             ? "bg-blue-500 text-white"
-            : "bg-white text-gray-700 hover:bg-gray-100"
-        } px-4 py-2 rounded border border-gray-300 flex items-center gap-2 transition-colors`}
+            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+        } p-2 rounded-lg flex items-center justify-center transition-all hover:scale-105`}
         onClick={() => onToolSelect(selectedTool === "text" ? null : "text")}
         title="Text (T)"
       >
         <svg
-          width="20"
-          height="20"
-          viewBox="0 0 20 20"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            d="M5 4h10M10 4v12M7 16h6"
+            d="M6 5h12M12 5v14M9 19h6"
             stroke="currentColor"
             strokeWidth="2"
             strokeLinecap="round"
           />
         </svg>
-        <span className="text-sm">Text</span>
       </button>
 
       {/* Clear selection */}
       {selectedTool && (
-        <button
-          className="tool-button bg-white text-gray-700 px-3 py-2 rounded border border-gray-300 hover:bg-gray-100 transition-colors"
-          onClick={() => onToolSelect(null)}
-          title="Deselect tool (Esc)"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+        <>
+          <div className="h-6 w-px bg-gray-600 mx-0.5"></div>
+          <button
+            className="tool-button bg-gray-700 text-gray-300 hover:bg-gray-600 p-2 rounded-lg flex items-center justify-center transition-all hover:scale-105"
+            onClick={() => onToolSelect(null)}
+            title="Deselect tool (Esc)"
           >
-            <path
-              d="M15 5L5 15M5 5l10 10"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M18 6L6 18M6 6l12 12"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </>
       )}
     </div>
   );

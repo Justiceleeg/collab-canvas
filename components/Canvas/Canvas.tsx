@@ -17,6 +17,7 @@ import { useCanvasCommands } from "@/services/canvasCommands";
 import Stage from "./Stage";
 import Shape from "./Shape";
 import Toolbar from "../Toolbar/Toolbar";
+import BottomToolbar from "../Toolbar/BottomToolbar";
 import Cursors from "./Cursors";
 import Transformer from "./Transformer";
 import TextEditor from "./TextEditor";
@@ -247,8 +248,11 @@ export default function Canvas() {
 
   return (
     <div className="canvas-container">
-      {/* Toolbar */}
-      <Toolbar selectedTool={activeTool} onToolSelect={setActiveTool} />
+      {/* Top Toolbar */}
+      <Toolbar />
+
+      {/* Bottom Toolbar */}
+      <BottomToolbar selectedTool={activeTool} onToolSelect={setActiveTool} />
 
       {/* Stage Wrapper */}
       <div className="canvas-stage-wrapper" onMouseMove={handleMouseMove}>

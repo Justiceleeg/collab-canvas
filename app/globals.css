@@ -56,15 +56,16 @@ body {
   cursor: default;
 }
 
-/* Stage wrapper - positioned below toolbar */
+/* Stage wrapper - positioned below top toolbar and above bottom toolbar */
 /* PR #9 - Absolute positioning establishes context for cursor positioning */
 .canvas-stage-wrapper {
   position: absolute;
-  top: 64px; /* Height of toolbar */
+  top: 64px; /* Height of top toolbar */
   left: 0;
   width: 100%;
   height: calc(100% - 64px);
   overflow: hidden;
+  padding-bottom: 100px; /* Space for bottom toolbar */
 }
 
 /* Canvas info overlay (viewport debug) */

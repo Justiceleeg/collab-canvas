@@ -1,19 +1,13 @@
 "use client";
 
-// PR #6 - Rectangle Shape Creation & Rendering
 // Main toolbar component
-// Combines shape tools and (future) layer tools
+// Top bar with logo, presence avatars, and user menu
 
-import ShapeTools, { ShapeToolType } from "./ShapeTools";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
+import PresenceAvatars from "../Presence/PresenceAvatars";
 
-interface ToolbarProps {
-  selectedTool: ShapeToolType;
-  onToolSelect: (tool: ShapeToolType) => void;
-}
-
-export default function Toolbar({ selectedTool, onToolSelect }: ToolbarProps) {
+export default function Toolbar() {
   const { user, signOut } = useAuth();
   const router = useRouter();
 
@@ -24,7 +18,7 @@ export default function Toolbar({ selectedTool, onToolSelect }: ToolbarProps) {
   return (
     <div className="toolbar fixed top-0 left-0 right-0 z-50 bg-white shadow-md border-b border-gray-200">
       <div className="toolbar-container max-w-screen-2xl mx-auto px-4 py-3 flex items-center justify-between">
-        {/* Left section - Shape tools */}
+        {/* Left section - Logo */}
         <div className="toolbar-left flex items-center gap-4">
           <div className="toolbar-logo flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center">
@@ -40,18 +34,19 @@ export default function Toolbar({ selectedTool, onToolSelect }: ToolbarProps) {
             </div>
             <h1 className="text-lg font-bold text-gray-900">Collab Canvas</h1>
           </div>
+        </div>
+
+        {/* Right section - Presence, User info and sign out */}
+        <div className="toolbar-right flex items-center gap-4">
+          {/* Presence avatars */}
+          <PresenceAvatars />
 
           <div className="toolbar-divider h-8 w-px bg-gray-300"></div>
 
-          <ShapeTools selectedTool={selectedTool} onToolSelect={onToolSelect} />
-        </div>
-
-        {/* Right section - User info and sign out */}
-        <div className="toolbar-right flex items-center gap-4">
           {user && (
             <>
               <span className="text-sm text-gray-600">
-                Welcome, {user.displayName || user.email || "User"}
+                {user.displayName || user.email || "User"}
               </span>
               <button
                 onClick={handleSignOut}
