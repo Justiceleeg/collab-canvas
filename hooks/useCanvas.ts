@@ -103,6 +103,9 @@ export function useCanvas() {
           await firestoreService.createObject(shapeData, user.uid);
 
           // The shape will be updated via Firestore sync hook
+
+          // Reset tool to selection mode after creating shape
+          setActiveTool(null);
         } catch (error) {
           console.error("Error creating shape:", error);
           // TODO: Show error toast (PR #18)
