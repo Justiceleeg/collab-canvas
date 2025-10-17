@@ -157,34 +157,21 @@ export default function ContextMenu({ commands }: ContextMenuProps) {
           <span className="ml-auto text-xs text-gray-400">[</span>
         </button>
 
-        <div className="border-t border-gray-200 my-1" />
-
-        {/* Group (only show for multiple shapes) */}
-        {isMultipleShapes && (
-          <button
-            className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
-            onClick={() =>
-              handleAction(() => commands.groupShapes(targetShapeIds))
-            }
-          >
-            <span className="text-lg">📦</span>
-            <span>Group</span>
-            <span className="ml-auto text-xs text-gray-400">⌘G</span>
-          </button>
-        )}
-
         {/* Properties (only show for single shape) */}
         {isSingleShape && (
-          <button
-            className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
-            onClick={() => {
-              commands.openPropertiesPanel(targetShapeIds[0]);
-              closeContextMenu();
-            }}
-          >
-            <span className="text-lg">⚙️</span>
-            <span>Properties...</span>
-          </button>
+          <>
+            <div className="border-t border-gray-200 my-1" />
+            <button
+              className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
+              onClick={() => {
+                commands.openPropertiesPanel(targetShapeIds[0]);
+                closeContextMenu();
+              }}
+            >
+              <span className="text-lg">⚙️</span>
+              <span>Properties...</span>
+            </button>
+          </>
         )}
 
         <div className="border-t border-gray-200 my-1" />

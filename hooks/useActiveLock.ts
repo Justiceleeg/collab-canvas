@@ -20,8 +20,6 @@ export function useActiveLock() {
   // Acquire lock for a new object (adds to active locks set)
   const acquireActiveLock = useCallback(
     async (objectId: string) => {
-      console.log(`[Lock] Attempting to acquire lock for: ${objectId}`);
-
       // Check if already locked by someone else
       if (isLocked(objectId)) {
         const lockInfo = getLockInfo(objectId);
@@ -33,7 +31,6 @@ export function useActiveLock() {
 
       // Skip if we already have this lock
       if (activeLocksRef.current.has(objectId)) {
-        console.log(`[Lock] ✓ Already have lock (cached): ${objectId}`);
         return { success: true };
       }
 
@@ -41,7 +38,6 @@ export function useActiveLock() {
       const result = await acquireLock(objectId);
       if (result.success) {
         activeLocksRef.current.add(objectId);
-        console.log(`[Lock] ✓ Successfully acquired lock: ${objectId}`);
       } else {
         console.warn(
           `[Lock] ✗ Failed to acquire lock: ${result.lockedByName} is editing ${objectId}`
@@ -103,7 +99,6 @@ export function useActiveLock() {
         if (result.success) {
           activeLocksRef.current.add(result.id);
           successCount++;
-          console.log(`[Lock] ✓ Locked shape: ${result.id}`);
         } else {
           failedIds.push(result.id);
           console.warn(
@@ -116,10 +111,6 @@ export function useActiveLock() {
       if (!forceReacquire) {
         successCount += objectIds.length - idsToLock.length;
       }
-
-      console.log(
-        `[Lock] Batch acquire complete: ${successCount}/${objectIds.length} succeeded`
-      );
       return { successCount, failedIds };
     },
     [batchAcquireLocks, isLocked]

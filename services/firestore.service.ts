@@ -302,9 +302,6 @@ export const firestoreService = {
             updatedAt: serverTimestamp(),
           });
 
-          console.log(
-            `[Firestore] Acquired lock on ${objectId} for user ${userId}`
-          );
           results.push({ id: objectId, success: true });
         }
 
@@ -342,11 +339,9 @@ export const firestoreService = {
           lastUpdatedBy: userId,
           updatedAt: serverTimestamp(),
         });
-        console.log(`[Firestore] Released lock on ${id}`);
       });
 
       await batch.commit();
-      console.log(`[Firestore] Batch released ${objectIds.length} locks`);
     } catch (error) {
       console.error("Error batch releasing locks:", error);
       throw error;

@@ -79,8 +79,10 @@ export default function Text({
   return (
     <Group
       id={shape.id}
-      x={shape.x}
-      y={shape.y}
+      x={shape.x + textBounds.width / 2} // Position at center for rotation
+      y={shape.y + textBounds.height / 2}
+      offsetX={textBounds.width / 2} // Rotate around center
+      offsetY={textBounds.height / 2}
       rotation={shape.rotation || 0}
       opacity={shape.opacity !== undefined ? shape.opacity : 1} // PR #16 - Opacity support
       draggable={!isLocked && !isEditing}
