@@ -14,6 +14,7 @@ import { useActiveLock } from "@/hooks/useActiveLock";
 import { useShapeInteractions } from "@/hooks/useShapeInteractions";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useCanvasCommands } from "@/services/canvasCommands";
+import { useHistoryManager } from "@/services/historyManager";
 import Stage from "./Stage";
 import Shape from "./Shape";
 import Toolbar from "../Toolbar/Toolbar";
@@ -66,6 +67,9 @@ export default function Canvas() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const commands = useCanvasCommands(lockManager as any, user?.uid);
 
+  // Layer 3: History manager for undo/redo
+  const historyManager = useHistoryManager(user?.uid);
+
   // Layer 2: Shape interaction handlers
   const shapeInteractions = useShapeInteractions({
     commands,
@@ -76,6 +80,7 @@ export default function Canvas() {
   // Layer 2: Keyboard shortcuts (centralized)
   useKeyboardShortcuts({
     commands,
+    historyManager,
     editingTextId,
     activeTool,
     onEscapeKey: () => setActiveTool(null),

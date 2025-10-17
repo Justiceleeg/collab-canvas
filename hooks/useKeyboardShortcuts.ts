@@ -6,9 +6,11 @@ import { useEffect, useCallback } from "react";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUIStore } from "@/store/uiStore";
 import type { CanvasCommandService } from "@/services/canvasCommands";
+import type { HistoryManager } from "@/services/historyManager";
 
 interface UseKeyboardShortcutsProps {
   commands: CanvasCommandService;
+  historyManager: HistoryManager;
   editingTextId: string | null;
   activeTool: string | null;
   onEscapeKey?: () => void;
@@ -32,6 +34,7 @@ function isTypingInInput(target: EventTarget | null): boolean {
  */
 export function useKeyboardShortcuts({
   commands,
+  historyManager,
   editingTextId,
   activeTool,
   onEscapeKey,
@@ -67,13 +70,17 @@ export function useKeyboardShortcuts({
   // Main keyboard shortcut handler
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
-      // Don't handle shortcuts when typing in inputs or editing text
-      if (isTypingInInput(e.target) || editingTextId) {
-        return;
-      }
-
       const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
       const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+      // Allow undo/redo shortcuts even when focused on inputs (they're command-level actions)
+      const isUndoRedo =
+        (cmdOrCtrl && e.key === "z") || (cmdOrCtrl && e.key === "y");
+
+      // Don't handle other shortcuts when typing in inputs or editing text
+      if (!isUndoRedo && (isTypingInInput(e.target) || editingTextId)) {
+        return;
+      }
 
       // Escape key: Deselect all and exit active tool
       if (e.key === "Escape") {
@@ -126,8 +133,7 @@ export function useKeyboardShortcuts({
       // Cmd/Ctrl + Z: Undo
       if (cmdOrCtrl && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
-        // TODO: Implement undo in future PR
-        console.log("Undo - coming soon");
+        await historyManager.undo();
         return;
       }
 
@@ -137,8 +143,7 @@ export function useKeyboardShortcuts({
         (cmdOrCtrl && e.key === "y")
       ) {
         e.preventDefault();
-        // TODO: Implement redo in future PR
-        console.log("Redo - coming soon");
+        await historyManager.redo();
         return;
       }
 
@@ -223,6 +228,7 @@ export function useKeyboardShortcuts({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
     commands,
+    historyManager,
     selectedIds,
     editingTextId,
     activeTool,

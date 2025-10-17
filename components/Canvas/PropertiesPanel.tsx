@@ -66,7 +66,12 @@ export default function PropertiesPanel() {
   // Debounce timer ref
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Update form data when selection changes
+  // Track original values before optimistic updates (for history capture)
+  const originalValuesRef = useRef<Record<string, any>>({});
+
+  // Update form data when selection changes or selectedShape.id changes
+  // Use selectedShape.id in dependency to avoid resetting during property updates
+  const selectedShapeId = selectedShape?.id;
   useEffect(() => {
     if (selectedShape) {
       setFormData({
@@ -85,12 +90,18 @@ export default function PropertiesPanel() {
         fontWeight: selectedShape.fontWeight || "normal",
         fontStyle: selectedShape.fontStyle || "normal",
       });
+
+      // Clear original values ref when selection changes
+      originalValuesRef.current = {};
     }
-  }, [selectedShape]); // Reset when shape or its properties change
+  }, [selectedShapeId]); // Only reset when selection changes, not on every property update
 
   // Debounced update function - updates Firestore via commands
   const updateShapeDebounced = useCallback(
-    (updates: Partial<CanvasObject>) => {
+    (
+      updates: Partial<CanvasObject>,
+      originalValues?: Partial<CanvasObject>
+    ) => {
       if (!selectedShape) return;
 
       // Clear existing timer
@@ -101,8 +112,15 @@ export default function PropertiesPanel() {
       // Set new timer
       debounceTimerRef.current = setTimeout(async () => {
         try {
-          // Use command service (includes validation and error handling)
-          await commands.updateShapeProperties(selectedShape.id, updates);
+          // Use command service with original values for proper history capture
+          await commands.updateShapeProperties(
+            selectedShape.id,
+            updates,
+            originalValues
+          );
+
+          // Clear captured original values after successful update
+          originalValuesRef.current = {};
         } catch (error) {
           // Command service already logs and shows toast
           console.error("Error updating shape properties:", error);
@@ -146,11 +164,28 @@ export default function PropertiesPanel() {
     field: keyof CanvasObject,
     value: string | number
   ) => {
+    // Capture original value BEFORE any changes (for history)
+    if (!originalValuesRef.current[field] && selectedShape) {
+      originalValuesRef.current[field] = selectedShape[field];
+    }
+
     // Update local state immediately for responsive UI
     setFormData((prev) => ({ ...prev, [field]: value }));
 
-    // Debounce Firestore update
-    updateShapeDebounced({ [field]: value });
+    // Also update canvas store immediately for instant visual feedback (optimistic)
+    if (selectedShape) {
+      useCanvasStore
+        .getState()
+        .updateObject(selectedShape.id, { [field]: value });
+    }
+
+    // Debounce Firestore update with original values
+    const originalValues: Partial<CanvasObject> = {};
+    Object.keys(originalValuesRef.current).forEach((key) => {
+      originalValues[key as keyof CanvasObject] =
+        originalValuesRef.current[key];
+    });
+    updateShapeDebounced({ [field]: value }, originalValues);
   };
 
   const handleColorChange = (field: "color" | "strokeColor", value: string) => {

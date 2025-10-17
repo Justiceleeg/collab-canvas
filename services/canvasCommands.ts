@@ -7,6 +7,7 @@ import { firestoreService } from "./firestore.service";
 import { useCanvasStore } from "@/store/canvasStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUIStore } from "@/store/uiStore";
+import { useHistoryStore } from "@/store/historyStore";
 import type { CanvasObject, ShapeType } from "@/types/canvas.types";
 import type Konva from "konva";
 
@@ -36,6 +37,13 @@ export class CanvasCommandService {
     if (shapeIds.length === 0 || !this.userId) return;
 
     try {
+      const { getObjectById } = useCanvasStore.getState();
+
+      // Capture shape data for undo BEFORE deleting
+      const shapesData = shapeIds
+        .map((id) => getObjectById(id))
+        .filter(Boolean) as CanvasObject[];
+
       // Release locks BEFORE deleting
       await this.lockManager.releaseActiveLock();
 
@@ -46,6 +54,20 @@ export class CanvasCommandService {
 
       // Clear selection
       useSelectionStore.getState().setSelectedIds([]);
+
+      // Add to history for undo
+      useHistoryStore.getState().addCommand({
+        type: "delete",
+        description: `Delete ${shapeIds.length} shape${
+          shapeIds.length > 1 ? "s" : ""
+        }`,
+        undo: {
+          shapes: shapesData, // Restore deleted shapes
+        },
+        redo: {
+          shapeIds, // Delete these shapes again
+        },
+      });
 
       // Show success toast
       useUIStore
@@ -135,12 +157,23 @@ export class CanvasCommandService {
     const userId = this.userId; // Capture for TypeScript type narrowing
 
     try {
+      const { getObjectById } = useCanvasStore.getState();
+
       // Acquire locks for ALL shapes being updated
       if (shapeIds.length > 1) {
         await this.lockManager.batchAcquireActiveLocks(shapeIds);
       } else if (shapeIds.length === 1) {
         await this.lockManager.acquireActiveLock(shapeIds[0]);
       }
+
+      // Capture previous colors for undo
+      const previousValues = shapeIds
+        .map((id) => {
+          const shape = getObjectById(id);
+          if (!shape) return null;
+          return { id, data: { color: shape.color } };
+        })
+        .filter(Boolean) as Array<{ id: string; data: { color: string } }>;
 
       // Build update data
       const updates = shapeIds.map((id) => ({
@@ -164,6 +197,20 @@ export class CanvasCommandService {
         );
       }
 
+      // Add to history for undo
+      useHistoryStore.getState().addCommand({
+        type: "changeColor",
+        description: `Change color of ${shapeIds.length} shape${
+          shapeIds.length > 1 ? "s" : ""
+        }`,
+        undo: {
+          previousValues,
+        },
+        redo: {
+          newValues: updates,
+        },
+      });
+
       // Note: We do NOT release locks here because shapes are still selected
       // Locks will be released when shapes are deselected
 
@@ -184,8 +231,17 @@ export class CanvasCommandService {
     const userId = this.userId; // Capture for TypeScript type narrowing
 
     try {
-      const { objects } = useCanvasStore.getState();
+      const { objects, getObjectById } = useCanvasStore.getState();
       const maxZIndex = Math.max(...objects.map((obj) => obj.zIndex || 0));
+
+      // Capture previous zIndex values for history
+      const previousValues = shapeIds.map((id) => {
+        const shape = getObjectById(id);
+        return {
+          id,
+          data: { zIndex: shape?.zIndex || 0 },
+        };
+      });
 
       // Build update data
       const updates = shapeIds.map((id, index) => ({
@@ -209,6 +265,18 @@ export class CanvasCommandService {
         );
       }
 
+      // Add to history for undo
+      useHistoryStore.getState().addCommand({
+        type: "bringToFront",
+        description: "Bring to front",
+        undo: {
+          previousValues,
+        },
+        redo: {
+          newValues: updates,
+        },
+      });
+
       useUIStore.getState().showToast("Brought to front", "success");
     } catch (error) {
       console.error("Error bringing to front:", error);
@@ -226,8 +294,17 @@ export class CanvasCommandService {
     const userId = this.userId; // Capture for TypeScript type narrowing
 
     try {
-      const { objects } = useCanvasStore.getState();
+      const { objects, getObjectById } = useCanvasStore.getState();
       const minZIndex = Math.min(...objects.map((obj) => obj.zIndex || 0));
+
+      // Capture previous zIndex values for history
+      const previousValues = shapeIds.map((id) => {
+        const shape = getObjectById(id);
+        return {
+          id,
+          data: { zIndex: shape?.zIndex || 0 },
+        };
+      });
 
       // Build update data
       const updates = shapeIds.map((id, index) => ({
@@ -251,6 +328,18 @@ export class CanvasCommandService {
         );
       }
 
+      // Add to history for undo
+      useHistoryStore.getState().addCommand({
+        type: "sendToBack",
+        description: "Send to back",
+        undo: {
+          previousValues,
+        },
+        redo: {
+          newValues: updates,
+        },
+      });
+
       useUIStore.getState().showToast("Sent to back", "success");
     } catch (error) {
       console.error("Error sending to back:", error);
@@ -268,7 +357,7 @@ export class CanvasCommandService {
     const userId = this.userId;
 
     try {
-      const { objects } = useCanvasStore.getState();
+      const { objects, getObjectById } = useCanvasStore.getState();
 
       // Sort all shapes by zIndex (ascending)
       const sortedShapes = [...objects].sort((a, b) => a.zIndex - b.zIndex);
@@ -308,6 +397,15 @@ export class CanvasCommandService {
 
       // Apply all updates
       if (updates.length > 0) {
+        // Capture previous zIndex values for history
+        const previousValues = updates.map(({ id }) => {
+          const shape = getObjectById(id);
+          return {
+            id,
+            data: { zIndex: shape?.zIndex || 0 },
+          };
+        });
+
         // Format for batch update
         const batchUpdates = updates.map(({ id, zIndex }) => ({
           id,
@@ -329,6 +427,18 @@ export class CanvasCommandService {
             userId
           );
         }
+
+        // Add to history for undo
+        useHistoryStore.getState().addCommand({
+          type: "bringForward",
+          description: "Bring forward",
+          undo: {
+            previousValues,
+          },
+          redo: {
+            newValues: batchUpdates,
+          },
+        });
       }
 
       useUIStore.getState().showToast("Brought forward", "success");
@@ -348,7 +458,7 @@ export class CanvasCommandService {
     const userId = this.userId;
 
     try {
-      const { objects } = useCanvasStore.getState();
+      const { objects, getObjectById } = useCanvasStore.getState();
 
       // Sort all shapes by zIndex (ascending)
       const sortedShapes = [...objects].sort((a, b) => a.zIndex - b.zIndex);
@@ -388,6 +498,15 @@ export class CanvasCommandService {
 
       // Apply all updates
       if (updates.length > 0) {
+        // Capture previous zIndex values for history
+        const previousValues = updates.map(({ id }) => {
+          const shape = getObjectById(id);
+          return {
+            id,
+            data: { zIndex: shape?.zIndex || 0 },
+          };
+        });
+
         // Format for batch update
         const batchUpdates = updates.map(({ id, zIndex }) => ({
           id,
@@ -409,6 +528,18 @@ export class CanvasCommandService {
             userId
           );
         }
+
+        // Add to history for undo
+        useHistoryStore.getState().addCommand({
+          type: "sendBackward",
+          description: "Send backward",
+          undo: {
+            previousValues,
+          },
+          redo: {
+            newValues: batchUpdates,
+          },
+        });
       }
 
       useUIStore.getState().showToast("Sent backward", "success");
@@ -439,6 +570,21 @@ export class CanvasCommandService {
       } else if (shapeIds.length === 1) {
         await this.lockManager.acquireActiveLock(shapeIds[0]);
       }
+
+      // Capture previous values for undo
+      const previousValues = shapeIds
+        .map((id) => {
+          const shape = getObjectById(id);
+          if (!shape) return null;
+          return {
+            id,
+            data: { x: shape.x, y: shape.y },
+          };
+        })
+        .filter(Boolean) as Array<{
+        id: string;
+        data: { x: number; y: number };
+      }>;
 
       // Build update data for all shapes
       const updates = shapeIds
@@ -479,6 +625,20 @@ export class CanvasCommandService {
         );
       }
 
+      // Add to history for undo
+      useHistoryStore.getState().addCommand({
+        type: "move",
+        description: `Move ${shapeIds.length} shape${
+          shapeIds.length > 1 ? "s" : ""
+        }`,
+        undo: {
+          previousValues,
+        },
+        redo: {
+          newValues: updates,
+        },
+      });
+
       // Note: We do NOT release locks here because shapes are still selected
       // Locks will be released when shapes are deselected
     } catch (error) {
@@ -507,9 +667,45 @@ export class CanvasCommandService {
     try {
       const { getObjectById } = useCanvasStore.getState();
 
+      // Capture previous values for undo
+      const previousValues: Array<{
+        id: string;
+        data: {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+          rotation: number;
+        };
+      }> = [];
+
+      // Build updates with proper positioning
+      const updates: Array<{
+        id: string;
+        data: {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+          rotation: number;
+        };
+      }> = [];
+
       for (const transformed of transformedShapes) {
         const shape = getObjectById(transformed.id);
         if (!shape) continue;
+
+        // Capture previous values
+        previousValues.push({
+          id: transformed.id,
+          data: {
+            x: shape.x,
+            y: shape.y,
+            width: shape.width,
+            height: shape.height,
+            rotation: shape.rotation || 0,
+          },
+        });
 
         // Handle circle and rectangle positioning (center vs top-left)
         // Both are positioned by center for consistent rotation behavior
@@ -527,18 +723,49 @@ export class CanvasCommandService {
           finalHeight = transformed.height;
         }
 
-        await firestoreService.updateObject(
-          transformed.id,
-          {
+        updates.push({
+          id: transformed.id,
+          data: {
             x: finalX,
             y: finalY,
             width: finalWidth,
             height: finalHeight,
             rotation: transformed.rotation,
           },
+        });
+      }
+
+      if (updates.length === 0) return;
+
+      // Optimistic local update
+      updates.forEach(({ id, data }) => {
+        useCanvasStore.getState().updateObject(id, data);
+      });
+
+      // Use batch update for multi-shape operations
+      if (updates.length > 1) {
+        await firestoreService.batchUpdateObjects(updates, userId);
+      } else {
+        await firestoreService.updateObject(
+          updates[0].id,
+          updates[0].data,
           userId
         );
       }
+
+      // Add to history for undo
+      useHistoryStore.getState().addCommand({
+        type: "transform",
+        description: `Transform ${transformedShapes.length} shape${
+          transformedShapes.length > 1 ? "s" : ""
+        }`,
+        undo: {
+          previousValues,
+        },
+        redo: {
+          newValues: updates,
+        },
+      });
 
       // Note: We do NOT release locks here because shapes are still selected
       // Locks will be released when shapes are deselected
@@ -558,7 +785,26 @@ export class CanvasCommandService {
     const userId = this.userId; // Capture for TypeScript type narrowing
 
     try {
+      const { getObjectById } = useCanvasStore.getState();
+      const shape = getObjectById(shapeId);
+      if (!shape) return;
+
+      // Capture previous text for undo
+      const previousText = shape.text || "";
+
       await firestoreService.updateObject(shapeId, { text }, userId);
+
+      // Add to history for undo
+      useHistoryStore.getState().addCommand({
+        type: "updateText",
+        description: `Update text`,
+        undo: {
+          previousValues: [{ id: shapeId, data: { text: previousText } }],
+        },
+        redo: {
+          newValues: [{ id: shapeId, data: { text } }],
+        },
+      });
     } catch (error) {
       console.error("Error updating text:", error);
       useUIStore.getState().showToast("Failed to update text", "error");
@@ -572,13 +818,37 @@ export class CanvasCommandService {
    */
   async updateShapeProperties(
     shapeId: string,
-    properties: Partial<CanvasObject>
+    properties: Partial<CanvasObject>,
+    originalValues?: Partial<CanvasObject>
   ): Promise<void> {
     if (!this.userId) return;
 
     const userId = this.userId; // Capture for TypeScript type narrowing
 
     try {
+      const { getObjectById } = useCanvasStore.getState();
+      const shape = getObjectById(shapeId);
+      if (!shape) return;
+
+      // Use provided original values if available (for slider/drag operations),
+      // otherwise capture from current shape (for immediate updates)
+      let previousValues: Partial<CanvasObject> = {};
+
+      if (originalValues && Object.keys(originalValues).length > 0) {
+        // Use the original values passed in (before optimistic updates)
+        previousValues = originalValues;
+      } else {
+        // Capture from current shape (for non-optimistic operations)
+        Object.keys(properties).forEach((key) => {
+          const k = key as keyof CanvasObject;
+          const value = shape[k];
+          // Only store if value exists (not undefined)
+          if (value !== undefined) {
+            previousValues[k] = value as any;
+          }
+        });
+      }
+
       // Validate numeric ranges
       const validatedProperties: Partial<CanvasObject> = { ...properties };
 
@@ -614,8 +884,30 @@ export class CanvasCommandService {
         );
       }
 
-      // Update in Firestore
-      await firestoreService.updateObject(shapeId, validatedProperties, userId);
+      // Filter out undefined values BEFORE sending to Firestore (Firestore doesn't accept undefined)
+      const cleanedProperties = Object.fromEntries(
+        Object.entries(validatedProperties).filter(
+          ([_, value]) => value !== undefined
+        )
+      ) as Partial<CanvasObject>;
+
+      // Optimistic local update for immediate feedback
+      useCanvasStore.getState().updateObject(shapeId, cleanedProperties);
+
+      // Update in Firestore with cleaned properties
+      await firestoreService.updateObject(shapeId, cleanedProperties, userId);
+
+      // Add to history for undo
+      useHistoryStore.getState().addCommand({
+        type: "updateProperties",
+        description: `Update properties`,
+        undo: {
+          previousValues: [{ id: shapeId, data: previousValues }],
+        },
+        redo: {
+          newValues: [{ id: shapeId, data: cleanedProperties }],
+        },
+      });
     } catch (error) {
       console.error("Error updating shape properties:", error);
       useUIStore.getState().showToast("Failed to update properties", "error");
@@ -662,6 +954,18 @@ export class CanvasCommandService {
       // Select the new shape
       useSelectionStore.getState().setSelectedIds([newShape.id]);
 
+      // Add to history for undo
+      useHistoryStore.getState().addCommand({
+        type: "create",
+        description: `Create ${type}`,
+        undo: {
+          shapeIds: [newShape.id], // Delete created shape
+        },
+        redo: {
+          shapes: [newShape], // Recreate shape
+        },
+      });
+
       return newShape;
     } catch (error) {
       console.error("Error creating shape:", error);
@@ -682,6 +986,17 @@ export class CanvasCommandService {
     const userId = this.userId;
 
     try {
+      const { getObjectById } = useCanvasStore.getState();
+
+      // Capture previous zIndex values for history
+      const previousValues = newOrder.map(({ id }) => {
+        const shape = getObjectById(id);
+        return {
+          id,
+          data: { zIndex: shape?.zIndex || 0 },
+        };
+      });
+
       // Format for batch update
       const updates = newOrder.map(({ id, zIndex }) => ({
         id,
@@ -703,6 +1018,18 @@ export class CanvasCommandService {
           userId
         );
       }
+
+      // Add to history for undo
+      useHistoryStore.getState().addCommand({
+        type: "reorderLayers",
+        description: "Reorder layers",
+        undo: {
+          previousValues,
+        },
+        redo: {
+          newValues: updates,
+        },
+      });
     } catch (error) {
       console.error("Error reordering layers:", error);
       useUIStore.getState().showToast("Failed to reorder layers", "error");
