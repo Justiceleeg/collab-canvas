@@ -2,11 +2,13 @@
 // Handles all shape-level interactions: click, drag, transform, right-click
 // Consolidates event handlers that were previously scattered in Canvas.tsx
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUIStore } from "@/store/uiStore";
 import { useCanvasStore } from "@/store/canvasStore";
 import { useFirestoreSync } from "./useFirestore";
+import { useAuth } from "./useAuth";
+import { firestoreService } from "@/services/firestore.service";
 import type { CanvasCommandService } from "@/services/canvasCommands";
 import type Konva from "konva";
 
@@ -31,9 +33,13 @@ export function useShapeInteractions({
 }: UseShapeInteractionsProps) {
   const { selectedIds, setSelectedIds, toggleSelection } = useSelectionStore();
   const { openContextMenu } = useUIStore();
-  const { getObjectById } = useCanvasStore.getState();
+  // Don't destructure getObjectById - call it fresh each time to get current state
   const { updateObject } = useFirestoreSync();
+  const { user } = useAuth();
   const modifiers = useUIStore((state) => state.modifiers);
+
+  // Guard to prevent duplicate batch updates when multiple shapes fire dragEnd
+  const dragEndProcessedRef = useRef<boolean>(false);
 
   /**
    * Handle shape click (single select or multi-select with shift)
@@ -94,6 +100,9 @@ export function useShapeInteractions({
    */
   const handleShapeDragStart = useCallback(
     async (id: string, e: Konva.KonvaEventObject<DragEvent>) => {
+      // Reset the drag end guard for this new drag operation
+      dragEndProcessedRef.current = false;
+
       // Prevent drag if locked by another user
       if (lockManager.isLocked(id) && !lockManager.hasActiveLock(id)) {
         e.evt.preventDefault();
@@ -126,7 +135,7 @@ export function useShapeInteractions({
       let newX = node.x();
       let newY = node.y();
 
-      const draggedShape = getObjectById(id);
+      const draggedShape = useCanvasStore.getState().getObjectById(id);
       if (!draggedShape) return;
 
       // Calculate the offset from the original position
@@ -148,19 +157,56 @@ export function useShapeInteractions({
       try {
         // Move all selected shapes together if multi-select
         if (selectedIds.length > 1 && selectedIds.includes(id)) {
+          // Guard: When dragging multiple shapes, Konva fires dragEnd for EACH shape
+          // We only want to process the batch update ONCE
+          if (dragEndProcessedRef.current) {
+            return;
+          }
+          dragEndProcessedRef.current = true;
+
+          // Reset the dragged node back to its original position
+          // because the batch update will handle ALL shapes including this one
+          if (
+            draggedShape.type === "circle" ||
+            draggedShape.type === "rectangle"
+          ) {
+            const halfWidth = (draggedShape.width || 0) / 2;
+            const halfHeight = (draggedShape.height || 0) / 2;
+            node.x(originalX + halfWidth);
+            node.y(originalY + halfHeight);
+          } else {
+            node.x(originalX);
+            node.y(originalY);
+          }
+
+          // Use batch update for simultaneous appearance on remote screens
           const updates = selectedIds
             .map((shapeId) => {
-              const shape = getObjectById(shapeId);
+              const shape = useCanvasStore.getState().getObjectById(shapeId);
               if (!shape) return null;
 
-              return updateObject(shapeId, {
-                x: shape.x + deltaX,
-                y: shape.y + deltaY,
-              });
+              return {
+                id: shapeId,
+                data: {
+                  x: shape.x + deltaX,
+                  y: shape.y + deltaY,
+                },
+              };
             })
-            .filter(Boolean);
+            .filter(Boolean) as Array<{
+            id: string;
+            data: { x: number; y: number };
+          }>;
 
-          await Promise.all(updates);
+          if (updates.length > 0 && user?.uid) {
+            // Optimistic local update for immediate feedback (store only, no Firestore)
+            updates.forEach(({ id: shapeId, data }) => {
+              useCanvasStore.getState().updateObject(shapeId, data);
+            });
+
+            // Single batch update to Firestore (all shapes appear at once on remote)
+            await firestoreService.batchUpdateObjects(updates, user.uid);
+          }
         } else {
           // Single shape: just move the dragged shape
           await updateObject(id, { x: newX, y: newY });
@@ -173,7 +219,7 @@ export function useShapeInteractions({
         useUIStore.getState().showToast("Failed to move shape", "error");
       }
     },
-    [selectedIds, getObjectById, updateObject, lockManager]
+    [selectedIds, updateObject, lockManager, user]
   );
 
   /**
