@@ -188,16 +188,6 @@ export const useUIStore = create<UIStore>((set) => ({
         type,
       },
     });
-
-    // Auto-hide after 3 seconds
-    setTimeout(() => {
-      set((state) => ({
-        toast: {
-          ...state.toast,
-          isVisible: false,
-        },
-      }));
-    }, 3000);
   },
 
   hideToast: () => {

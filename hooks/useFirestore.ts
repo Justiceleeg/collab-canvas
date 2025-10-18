@@ -118,7 +118,9 @@ export function useFirestore(): UseFirestoreReturn {
     setLoading(true);
     isInitialLoad.current = true;
     setupSubscription();
-  }, [setupSubscription]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // setupSubscription is stable and doesn't need to be in deps
+  }, []);
 
   // Setup subscription on mount and when user changes
   useEffect(() => {
@@ -135,7 +137,10 @@ export function useFirestore(): UseFirestoreReturn {
         retryTimeoutRef.current = null;
       }
     };
-  }, [setupSubscription]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Only re-subscribe when user changes, not when setupSubscription changes
+    // (setupSubscription changes due to retryCount, which would cause infinite loops)
+  }, [user]);
 
   // Listen for online/offline events
   useEffect(() => {
@@ -149,7 +154,9 @@ export function useFirestore(): UseFirestoreReturn {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [retry]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // retry is stable (empty deps array) so this effect only runs once
+  }, []);
 
   return {
     loading,

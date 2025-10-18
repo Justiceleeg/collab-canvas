@@ -9,7 +9,20 @@ import { useUIStore } from "@/store/uiStore";
 export default function Toast() {
   const { toast, hideToast } = useUIStore();
 
-  // Auto-hide is already handled in the store, but we can add escape key support
+  // Auto-hide toast after 3 seconds
+  useEffect(() => {
+    if (!toast.isVisible) return;
+
+    // Set timer to auto-hide
+    const autoHideTimer = setTimeout(() => {
+      hideToast();
+    }, 3000);
+
+    // Cleanup timer on unmount or when toast changes
+    return () => clearTimeout(autoHideTimer);
+  }, [toast.isVisible, toast.message, hideToast]);
+
+  // Add escape key support to manually dismiss
   useEffect(() => {
     if (!toast.isVisible) return;
 
