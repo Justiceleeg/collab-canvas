@@ -30,6 +30,7 @@ function ensureFirebaseAdmin() {
 
 interface CreateShapeParams {
   type: ShapeType;
+  count?: number;
   x?: number;
   y?: number;
   width?: number;
@@ -42,21 +43,24 @@ interface MoveShapeParams {
   shapeId?: string;
   x: number;
   y: number;
+  isDelta?: boolean;
 }
 
 interface ResizeShapeParams {
-  shapeId?: string;
+  shapeIds?: string[];
   width: number;
   height: number;
 }
 
 interface RotateShapeParams {
-  shapeId?: string;
+  shapeIds?: string[];
   rotation: number;
 }
 
 interface DeleteShapeParams {
   shapeIds?: string[];
+  type?: ShapeType;
+  color?: string;
 }
 
 interface ArrangeGridParams {
@@ -84,13 +88,30 @@ interface AlignShapesParams {
 }
 
 /**
- * Create a new shape in Firestore
+ * Create one or more shapes in Firestore
  */
 export async function createShape(
   params: CreateShapeParams,
   userId: string = "ai-agent"
 ) {
-  const { type, x = 400, y = 300, width, height, color, text } = params;
+  const {
+    type,
+    count = 1,
+    x = 400,
+    y = 300,
+    width,
+    height,
+    color,
+    text,
+  } = params;
+
+  // Validate count
+  if (count < 1 || count > 100) {
+    return {
+      success: false,
+      message: "Count must be between 1 and 100",
+    };
+  }
 
   const defaultSizes: Record<ShapeType, { width: number; height: number }> = {
     rectangle: { width: 200, height: 150 },
@@ -100,56 +121,128 @@ export async function createShape(
 
   const size = defaultSizes[type];
   const parsedColor = color ? parseColor(color) : "#3B82F6";
-
-  const shapeData = {
-    type,
-    x,
-    y,
-    width: width || size.width,
-    height: height || size.height,
-    rotation: 0,
-    color: parsedColor,
-    strokeColor: "#000000",
-    strokeWidth: 2,
-    opacity: 1,
-    ...(type === "text" && {
-      text: text || "Text",
-      fontSize: 24,
-      fontWeight: "normal",
-      fontStyle: "normal",
-    }),
-    zIndex: Date.now(),
-    lockedBy: null,
-    lockedAt: null,
-    lastUpdatedBy: userId,
-    updatedAt: FieldValue.serverTimestamp(),
-    createdAt: FieldValue.serverTimestamp(),
-  };
+  const shapeWidth = width || size.width;
+  const shapeHeight = height || size.height;
 
   const db = ensureFirebaseAdmin();
-  const docRef = await db.collection(CANVAS_OBJECTS_COLLECTION).add(shapeData);
+
+  // Single shape creation (original behavior)
+  if (count === 1) {
+    const shapeData = {
+      type,
+      x,
+      y,
+      width: shapeWidth,
+      height: shapeHeight,
+      rotation: 0,
+      color: parsedColor,
+      strokeColor: "#000000",
+      strokeWidth: 2,
+      opacity: 1,
+      ...(type === "text" && {
+        text: text || "Text",
+        fontSize: 24,
+        fontWeight: "normal",
+        fontStyle: "normal",
+      }),
+      zIndex: Date.now(),
+      lockedBy: null,
+      lockedAt: null,
+      lastUpdatedBy: userId,
+      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+    };
+
+    const docRef = await db
+      .collection(CANVAS_OBJECTS_COLLECTION)
+      .add(shapeData);
+
+    return {
+      success: true,
+      message: `Created ${type}${color ? ` with color ${color}` : ""}`,
+      shapeId: docRef.id,
+    };
+  }
+
+  // Batch creation for multiple shapes
+  const batch = db.batch();
+  const createdIds: string[] = [];
+  const baseZIndex = Date.now();
+
+  // Calculate grid layout: 10 columns, offset by 20px
+  const columnsPerRow = 10;
+  const offsetX = 20;
+  const offsetY = 20;
+
+  for (let i = 0; i < count; i++) {
+    const col = i % columnsPerRow;
+    const row = Math.floor(i / columnsPerRow);
+
+    const shapeX = x + col * offsetX;
+    const shapeY = y + row * offsetY;
+
+    const shapeData = {
+      type,
+      x: shapeX,
+      y: shapeY,
+      width: shapeWidth,
+      height: shapeHeight,
+      rotation: 0,
+      color: parsedColor,
+      strokeColor: "#000000",
+      strokeWidth: 2,
+      opacity: 1,
+      ...(type === "text" && {
+        text: text || `Text ${i + 1}`,
+        fontSize: 24,
+        fontWeight: "normal",
+        fontStyle: "normal",
+      }),
+      zIndex: baseZIndex + i,
+      lockedBy: null,
+      lockedAt: null,
+      lastUpdatedBy: userId,
+      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+    };
+
+    const docRef = db.collection(CANVAS_OBJECTS_COLLECTION).doc();
+    batch.set(docRef, shapeData);
+    createdIds.push(docRef.id);
+  }
+
+  await batch.commit();
 
   return {
     success: true,
-    message: `Created ${type}${color ? ` with color ${color}` : ""}`,
-    shapeId: docRef.id,
+    message: `Created ${count} ${type}${count > 1 ? "s" : ""}${
+      color ? ` with color ${color}` : ""
+    }`,
+    shapeIds: createdIds,
+    count,
   };
 }
 
 /**
- * Move a shape to a new position
+ * Move shape(s) to a new position or by an offset
  */
 export async function moveShape(
   params: MoveShapeParams,
+  canvasObjects: CanvasObject[],
   selectedIds: string[],
   userId: string = "ai-agent"
 ) {
-  const { shapeId, x, y } = params;
+  const { shapeId, x, y, isDelta = false } = params;
 
-  // Determine which shape to move
-  const targetId = shapeId || (selectedIds.length > 0 ? selectedIds[0] : null);
+  // Determine which shapes to move
+  let targetIds: string[] = [];
+  if (shapeId) {
+    targetIds = [shapeId];
+  } else if (selectedIds.length > 0) {
+    targetIds = selectedIds;
+  }
 
-  if (!targetId) {
+  if (targetIds.length === 0) {
     return {
       success: false,
       message:
@@ -160,37 +253,62 @@ export async function moveShape(
   const db = ensureFirebaseAdmin();
 
   try {
-    const docRef = db.collection(CANVAS_OBJECTS_COLLECTION).doc(targetId);
+    // For delta movement, we need current positions
+    if (isDelta) {
+      const batch = db.batch();
+      let movedCount = 0;
 
-    // Retry logic: Wait for document to exist (newly created shapes may take a moment)
-    let doc = await docRef.get();
-    let retries = 0;
-    const maxRetries = 3;
+      for (const id of targetIds) {
+        const shape = canvasObjects.find((obj) => obj.id === id);
+        if (shape) {
+          const docRef = db.collection(CANVAS_OBJECTS_COLLECTION).doc(id);
+          batch.update(docRef, {
+            x: shape.x + x,
+            y: shape.y + y,
+            lastUpdatedBy: userId,
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+          movedCount++;
+        }
+      }
 
-    while (!doc.exists && retries < maxRetries) {
-      // Wait 100ms before retrying
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      doc = await docRef.get();
-      retries++;
-    }
+      if (movedCount === 0) {
+        return {
+          success: false,
+          message: "No shapes found to move.",
+        };
+      }
 
-    if (!doc.exists) {
+      await batch.commit();
+
       return {
-        success: false,
-        message: `Shape with ID ${targetId} not found. It may have been deleted or doesn't exist.`,
+        success: true,
+        message: `Moved ${movedCount} shape${
+          movedCount > 1 ? "s" : ""
+        } by offset (${x}, ${y})`,
       };
     }
 
-    await docRef.update({
-      x,
-      y,
-      lastUpdatedBy: userId,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    // Absolute positioning - move all shapes to same location
+    const batch = db.batch();
+
+    for (const id of targetIds) {
+      const docRef = db.collection(CANVAS_OBJECTS_COLLECTION).doc(id);
+      batch.update(docRef, {
+        x,
+        y,
+        lastUpdatedBy: userId,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    await batch.commit();
 
     return {
       success: true,
-      message: `Moved shape to (${x}, ${y})`,
+      message: `Moved ${targetIds.length} shape${
+        targetIds.length > 1 ? "s" : ""
+      } to (${x}, ${y})`,
     };
   } catch (error) {
     return {
@@ -203,20 +321,24 @@ export async function moveShape(
 }
 
 /**
- * Resize a shape
+ * Resize one or more shapes
  */
 export async function resizeShape(
   params: ResizeShapeParams,
   selectedIds: string[],
   userId: string = "ai-agent"
 ) {
-  const { shapeId, width, height } = params;
+  const { shapeIds, width, height } = params;
 
-  // Determine which shape to resize
-  const targetId =
-    shapeId || (selectedIds.length === 1 ? selectedIds[0] : null);
+  // Determine which shapes to resize
+  let targetIds: string[] = [];
+  if (shapeIds && shapeIds.length > 0) {
+    targetIds = shapeIds;
+  } else if (selectedIds.length > 0) {
+    targetIds = selectedIds;
+  }
 
-  if (!targetId) {
+  if (targetIds.length === 0) {
     return {
       success: false,
       message:
@@ -225,34 +347,47 @@ export async function resizeShape(
   }
 
   const db = ensureFirebaseAdmin();
-  await db.collection(CANVAS_OBJECTS_COLLECTION).doc(targetId).update({
-    width,
-    height,
-    lastUpdatedBy: userId,
-    updatedAt: FieldValue.serverTimestamp(),
-  });
+  const batch = db.batch();
+
+  for (const id of targetIds) {
+    const docRef = db.collection(CANVAS_OBJECTS_COLLECTION).doc(id);
+    batch.update(docRef, {
+      width,
+      height,
+      lastUpdatedBy: userId,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  }
+
+  await batch.commit();
 
   return {
     success: true,
-    message: `Resized shape to ${width}x${height}`,
+    message: `Resized ${targetIds.length} shape${
+      targetIds.length > 1 ? "s" : ""
+    } to ${width}x${height}`,
   };
 }
 
 /**
- * Rotate a shape
+ * Rotate one or more shapes
  */
 export async function rotateShape(
   params: RotateShapeParams,
   selectedIds: string[],
   userId: string = "ai-agent"
 ) {
-  const { shapeId, rotation } = params;
+  const { shapeIds, rotation } = params;
 
-  // Determine which shape to rotate
-  const targetId =
-    shapeId || (selectedIds.length === 1 ? selectedIds[0] : null);
+  // Determine which shapes to rotate
+  let targetIds: string[] = [];
+  if (shapeIds && shapeIds.length > 0) {
+    targetIds = shapeIds;
+  } else if (selectedIds.length > 0) {
+    targetIds = selectedIds;
+  }
 
-  if (!targetId) {
+  if (targetIds.length === 0) {
     return {
       success: false,
       message:
@@ -261,33 +396,62 @@ export async function rotateShape(
   }
 
   const db = ensureFirebaseAdmin();
-  await db.collection(CANVAS_OBJECTS_COLLECTION).doc(targetId).update({
-    rotation,
-    lastUpdatedBy: userId,
-    updatedAt: FieldValue.serverTimestamp(),
-  });
+  const batch = db.batch();
+
+  for (const id of targetIds) {
+    const docRef = db.collection(CANVAS_OBJECTS_COLLECTION).doc(id);
+    batch.update(docRef, {
+      rotation,
+      lastUpdatedBy: userId,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  }
+
+  await batch.commit();
 
   return {
     success: true,
-    message: `Rotated shape to ${rotation} degrees`,
+    message: `Rotated ${targetIds.length} shape${
+      targetIds.length > 1 ? "s" : ""
+    } to ${rotation} degrees`,
   };
 }
 
 /**
- * Delete shapes
+ * Delete shapes by IDs, selection, or criteria (type, color)
  */
 export async function deleteShape(
   params: DeleteShapeParams,
+  canvasObjects: CanvasObject[],
   selectedIds: string[],
   userId: string = "ai-agent"
 ) {
-  const { shapeIds } = params;
+  const { shapeIds, type, color } = params;
 
   // Determine which shapes to delete
   let targetIds: string[] = [];
+
+  // Priority 1: Specific shape IDs
   if (shapeIds && shapeIds.length > 0) {
     targetIds = shapeIds;
-  } else if (selectedIds.length > 0) {
+  }
+  // Priority 2: Filter by criteria (type and/or color)
+  else if (type || color) {
+    let filtered = canvasObjects;
+
+    if (type) {
+      filtered = findShapesByType(filtered, type);
+    }
+
+    if (color) {
+      const hexColor = parseColor(color);
+      filtered = findShapesByColor(filtered, hexColor);
+    }
+
+    targetIds = filtered.map((shape) => shape.id);
+  }
+  // Priority 3: Selected shapes
+  else if (selectedIds.length > 0) {
     targetIds = selectedIds;
   }
 
@@ -310,11 +474,21 @@ export async function deleteShape(
 
   await batch.commit();
 
+  // Build descriptive message
+  let message = `Deleted ${targetIds.length} shape${
+    targetIds.length > 1 ? "s" : ""
+  }`;
+  if (type && color) {
+    message += ` (${type}s with color ${color})`;
+  } else if (type) {
+    message += ` (all ${type}s)`;
+  } else if (color) {
+    message += ` (all shapes with color ${color})`;
+  }
+
   return {
     success: true,
-    message: `Deleted ${targetIds.length} shape${
-      targetIds.length > 1 ? "s" : ""
-    }`,
+    message,
   };
 }
 

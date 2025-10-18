@@ -139,10 +139,19 @@ When executing commands:
 - For colors, you can use names like "red", "blue", "dark green", etc.
 - Coordinates are in pixels from the top-left
 - If no position is specified for new shapes, place them at a sensible location
-- When moving/resizing/rotating, if no shape is specified, operate on the most recently created or selected shape
-- IMPORTANT: moveShape uses ABSOLUTE coordinates, not relative offsets
-  - For "move it 10 pixels right", you must calculate the new absolute position (current_x + 10, current_y)
-  - For "move it to 500, 300", use those coordinates directly
+
+Batch operations:
+- CREATE MULTIPLE: Use count parameter to create up to 100 shapes at once (e.g., count: 50)
+  - Multiple shapes will be offset in a grid pattern (10 per row, 20px spacing)
+  - All shapes will have the same color and size
+- MOVE: Can move multiple selected shapes at once
+  - Use isDelta: true to move by offset (e.g., "move 50px right" = x: 50, y: 0, isDelta: true)
+  - Use isDelta: false for absolute position (e.g., "move to 500, 300" = x: 500, y: 300)
+- RESIZE/ROTATE: Applies same size/rotation to all selected shapes
+- DELETE: Can delete by shapeIds, selected shapes, OR by criteria
+  - Delete by type: type: "circle" deletes all circles
+  - Delete by color: color: "red" deletes all red shapes
+  - Delete by both: type: "circle", color: "red" deletes all red circles
 
 Layout commands:
 - Use arrangeGrid to organize shapes in a grid pattern
@@ -164,11 +173,18 @@ Never leave the user waiting - always provide a text response after using tools.
     tools: {
       createShape: tool({
         description:
-          "Create a new shape (rectangle, circle, or text) on the canvas",
+          "Create one or more shapes (rectangle, circle, or text) on the canvas. Can create up to 100 shapes at once.",
         inputSchema: z.object({
           type: z
             .enum(["rectangle", "circle", "text"])
             .describe("Type of shape to create"),
+          count: z
+            .number()
+            .optional()
+            .default(1)
+            .describe(
+              "Number of shapes to create (1-100, default: 1). Multiple shapes will be offset slightly from each other."
+            ),
           x: z
             .number()
             .optional()
@@ -194,11 +210,12 @@ Never leave the user waiting - always provide a text response after using tools.
             .optional()
             .describe("Text content (only for text shapes)"),
         }),
-        execute: async ({ type, x, y, width, height, color, text }) => {
+        execute: async ({ type, count, x, y, width, height, color, text }) => {
           try {
             const result = await createShape(
               {
                 type,
+                count,
                 x,
                 y,
                 width,
@@ -220,10 +237,18 @@ Never leave the user waiting - always provide a text response after using tools.
         },
       }),
       moveShape: tool({
-        description: "Move a shape or selected shapes to a new position",
+        description:
+          "Move shape(s) to a new position or by an offset. Can move multiple selected shapes at once.",
         inputSchema: z.object({
-          x: z.number().describe("Target X position"),
-          y: z.number().describe("Target Y position"),
+          x: z.number().describe("X coordinate or offset"),
+          y: z.number().describe("Y coordinate or offset"),
+          isDelta: z
+            .boolean()
+            .optional()
+            .default(false)
+            .describe(
+              "If true, x/y are offsets to add to current position (e.g., move 50px right). If false, x/y are absolute target position. Default: false"
+            ),
           shapeId: z
             .string()
             .optional()
@@ -231,10 +256,11 @@ Never leave the user waiting - always provide a text response after using tools.
               "Specific shape ID (optional, uses selected if not provided)"
             ),
         }),
-        execute: async ({ x, y, shapeId }) => {
+        execute: async ({ x, y, isDelta, shapeId }) => {
           try {
             const result = await moveShape(
-              { x, y, shapeId },
+              { x, y, isDelta, shapeId },
+              canvasObjects,
               selectedIds,
               userId
             );
@@ -250,21 +276,22 @@ Never leave the user waiting - always provide a text response after using tools.
         },
       }),
       resizeShape: tool({
-        description: "Resize a shape or the selected shape",
+        description:
+          "Resize one or more shapes. Can resize all selected shapes to the same size.",
         inputSchema: z.object({
           width: z.number().describe("New width in pixels"),
           height: z.number().describe("New height in pixels"),
-          shapeId: z
-            .string()
+          shapeIds: z
+            .array(z.string())
             .optional()
             .describe(
-              "Specific shape ID (optional, uses selected if not provided)"
+              "Specific shape IDs to resize (optional, uses selected if not provided)"
             ),
         }),
-        execute: async ({ width, height, shapeId }) => {
+        execute: async ({ width, height, shapeIds }) => {
           try {
             const result = await resizeShape(
-              { width, height, shapeId },
+              { width, height, shapeIds },
               selectedIds,
               userId
             );
@@ -280,20 +307,21 @@ Never leave the user waiting - always provide a text response after using tools.
         },
       }),
       rotateShape: tool({
-        description: "Rotate a shape or the selected shape",
+        description:
+          "Rotate one or more shapes. Can rotate all selected shapes to the same angle.",
         inputSchema: z.object({
           rotation: z.number().describe("Rotation angle in degrees (0-360)"),
-          shapeId: z
-            .string()
+          shapeIds: z
+            .array(z.string())
             .optional()
             .describe(
-              "Specific shape ID (optional, uses selected if not provided)"
+              "Specific shape IDs to rotate (optional, uses selected if not provided)"
             ),
         }),
-        execute: async ({ rotation, shapeId }) => {
+        execute: async ({ rotation, shapeIds }) => {
           try {
             const result = await rotateShape(
-              { rotation, shapeId },
+              { rotation, shapeIds },
               selectedIds,
               userId
             );
@@ -310,7 +338,7 @@ Never leave the user waiting - always provide a text response after using tools.
       }),
       deleteShape: tool({
         description:
-          "Delete shapes from the canvas. Can delete specific shapes or selected shapes",
+          "Delete shapes from the canvas. Can delete specific shapes, selected shapes, or shapes matching criteria (type, color)",
         inputSchema: z.object({
           shapeIds: z
             .array(z.string())
@@ -318,10 +346,27 @@ Never leave the user waiting - always provide a text response after using tools.
             .describe(
               "Specific shape IDs to delete (optional, uses selected if not provided)"
             ),
+          type: z
+            .enum(["rectangle", "circle", "text"])
+            .optional()
+            .describe(
+              "Delete all shapes of this type (e.g., 'circle' to delete all circles)"
+            ),
+          color: z
+            .string()
+            .optional()
+            .describe(
+              "Delete all shapes of this color (e.g., 'red', '#FF0000')"
+            ),
         }),
-        execute: async ({ shapeIds }) => {
+        execute: async ({ shapeIds, type, color }) => {
           try {
-            const result = await deleteShape({ shapeIds }, selectedIds, userId);
+            const result = await deleteShape(
+              { shapeIds, type, color },
+              canvasObjects,
+              selectedIds,
+              userId
+            );
             return result;
           } catch (error) {
             return {
