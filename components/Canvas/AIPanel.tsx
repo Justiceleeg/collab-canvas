@@ -4,6 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { useUIStore } from "@/store/uiStore";
 import { useEffect, useRef, useState } from "react";
 import type { CanvasObject } from "@/types/canvas.types";
+import { auth } from "@/services/firebase";
 
 interface AIPanelProps {
   objects: CanvasObject[];
@@ -233,9 +234,12 @@ export default function AIPanel({ objects, selectedIds }: AIPanelProps) {
       {/* Input */}
       <div className="border-t border-gray-200 p-3">
         <form
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
             if (input.trim()) {
+              // Get current user's ID token
+              const token = await auth.currentUser?.getIdToken();
+
               sendMessage(
                 {
                   role: "user",
@@ -247,6 +251,9 @@ export default function AIPanel({ objects, selectedIds }: AIPanelProps) {
                       objects,
                       selectedIds,
                     },
+                  },
+                  headers: {
+                    Authorization: `Bearer ${token}`,
                   },
                 }
               );

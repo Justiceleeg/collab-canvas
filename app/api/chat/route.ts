@@ -16,11 +16,46 @@ import {
   findShapesByCriteria,
   getCanvasStatistics,
 } from "@/services/aiCanvasOperations";
+import { adminAuth } from "@/lib/firebase-admin";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
+  // Authenticate the request
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(
+      "Unauthorized - Missing or invalid Authorization header",
+      {
+        status: 401,
+      }
+    );
+  }
+
+  // Verify Firebase ID token
+  const idToken = authHeader.split("Bearer ")[1];
+  let userId: string;
+
+  try {
+    if (!adminAuth) {
+      return new Response(
+        "Server configuration error - Firebase Admin not initialized",
+        {
+          status: 500,
+        }
+      );
+    }
+
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    userId = decodedToken.uid;
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    return new Response("Unauthorized - Invalid token", {
+      status: 401,
+    });
+  }
+
   const {
     messages,
     canvasState,
@@ -127,15 +162,18 @@ Never leave the user waiting - always provide a text response after using tools.
         }),
         execute: async ({ type, x, y, width, height, color, text }) => {
           try {
-            const result = await createShape({
-              type,
-              x,
-              y,
-              width,
-              height,
-              color,
-              text,
-            });
+            const result = await createShape(
+              {
+                type,
+                x,
+                y,
+                width,
+                height,
+                color,
+                text,
+              },
+              userId
+            );
             return result;
           } catch (error) {
             return {
@@ -161,7 +199,11 @@ Never leave the user waiting - always provide a text response after using tools.
         }),
         execute: async ({ x, y, shapeId }) => {
           try {
-            const result = await moveShape({ x, y, shapeId }, selectedIds);
+            const result = await moveShape(
+              { x, y, shapeId },
+              selectedIds,
+              userId
+            );
             return result;
           } catch (error) {
             return {
@@ -189,7 +231,8 @@ Never leave the user waiting - always provide a text response after using tools.
           try {
             const result = await resizeShape(
               { width, height, shapeId },
-              selectedIds
+              selectedIds,
+              userId
             );
             return result;
           } catch (error) {
@@ -217,7 +260,8 @@ Never leave the user waiting - always provide a text response after using tools.
           try {
             const result = await rotateShape(
               { rotation, shapeId },
-              selectedIds
+              selectedIds,
+              userId
             );
             return result;
           } catch (error) {
@@ -243,7 +287,7 @@ Never leave the user waiting - always provide a text response after using tools.
         }),
         execute: async ({ shapeIds }) => {
           try {
-            const result = await deleteShape({ shapeIds }, selectedIds);
+            const result = await deleteShape({ shapeIds }, selectedIds, userId);
             return result;
           } catch (error) {
             return {
@@ -277,7 +321,8 @@ Never leave the user waiting - always provide a text response after using tools.
             const result = await arrangeGrid(
               { rows, cols, spacing, shapeIds },
               canvasObjects,
-              selectedIds
+              selectedIds,
+              userId
             );
             return result;
           } catch (error) {
@@ -314,7 +359,8 @@ Never leave the user waiting - always provide a text response after using tools.
             const result = await distributeShapes(
               { direction, spacing, shapeIds },
               canvasObjects,
-              selectedIds
+              selectedIds,
+              userId
             );
             return result;
           } catch (error) {
@@ -352,7 +398,8 @@ Never leave the user waiting - always provide a text response after using tools.
             const result = await alignShapes(
               { alignType, shapeIds },
               canvasObjects,
-              selectedIds
+              selectedIds,
+              userId
             );
             return result;
           } catch (error) {

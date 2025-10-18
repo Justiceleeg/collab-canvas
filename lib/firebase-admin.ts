@@ -1,10 +1,12 @@
 // Firebase Admin SDK for server-side operations
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
 // Initialize Firebase Admin if not already initialized
 // Gracefully handle missing credentials during build time
 let adminDb: ReturnType<typeof getFirestore> | null = null;
+let adminAuth: ReturnType<typeof getAuth> | null = null;
 
 if (!getApps().length) {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -21,6 +23,7 @@ if (!getApps().length) {
       }),
     });
     adminDb = getFirestore();
+    adminAuth = getAuth();
   } else if (process.env.NODE_ENV !== "production") {
     console.warn(
       "Firebase Admin credentials not found. AI tools will not work until credentials are added to .env.local"
@@ -28,6 +31,7 @@ if (!getApps().length) {
   }
 } else {
   adminDb = getFirestore();
+  adminAuth = getAuth();
 }
 
-export { adminDb };
+export { adminDb, adminAuth };

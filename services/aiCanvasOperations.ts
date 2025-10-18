@@ -152,7 +152,8 @@ export async function moveShape(
   if (!targetId) {
     return {
       success: false,
-      message: "No shape selected or specified to move.",
+      message:
+        "No shape selected or specified. Please select a shape first, or provide a shape ID.",
     };
   }
 
@@ -176,7 +177,7 @@ export async function moveShape(
     if (!doc.exists) {
       return {
         success: false,
-        message: `Shape with ID ${targetId} not found after ${maxRetries} retries.`,
+        message: `Shape with ID ${targetId} not found. It may have been deleted or doesn't exist.`,
       };
     }
 
@@ -218,7 +219,8 @@ export async function resizeShape(
   if (!targetId) {
     return {
       success: false,
-      message: "No shape selected or specified to resize.",
+      message:
+        "No shape to resize. Please select exactly one shape, or specify a shapeId parameter.",
     };
   }
 
@@ -253,7 +255,8 @@ export async function rotateShape(
   if (!targetId) {
     return {
       success: false,
-      message: "No shape selected or specified to rotate.",
+      message:
+        "No shape to rotate. Please select exactly one shape, or specify a shapeId parameter.",
     };
   }
 
@@ -291,7 +294,8 @@ export async function deleteShape(
   if (targetIds.length === 0) {
     return {
       success: false,
-      message: "No shapes selected or specified to delete.",
+      message:
+        "No shapes to delete. Select shapes or provide shapeIds parameter.",
     };
   }
 
@@ -340,7 +344,7 @@ export async function arrangeGrid(
   if (targetShapes.length === 0) {
     return {
       success: false,
-      message: "No shapes to arrange.",
+      message: `No shapes to arrange. The canvas has ${canvasObjects.length} shape(s) total.`,
     };
   }
 
@@ -391,7 +395,7 @@ export async function distributeShapes(
   if (targetShapes.length < 2) {
     return {
       success: false,
-      message: "Need at least 2 shapes to distribute.",
+      message: `Need at least 2 shapes to distribute. Currently have ${targetShapes.length} shape(s) selected. The canvas has ${canvasObjects.length} total shapes.`,
     };
   }
 
@@ -442,7 +446,7 @@ export async function alignShapes(
   if (targetShapes.length < 2) {
     return {
       success: false,
-      message: "Need at least 2 shapes to align.",
+      message: `Need at least 2 shapes to align. Currently have ${targetShapes.length} shape(s) selected. The canvas has ${canvasObjects.length} total shapes.`,
     };
   }
 
