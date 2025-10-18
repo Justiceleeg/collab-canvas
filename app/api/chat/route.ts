@@ -8,6 +8,7 @@ import {
   moveShape,
   resizeShape,
   rotateShape,
+  deleteShape,
   arrangeGrid,
   distributeShapes,
   alignShapes,
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
 
 The canvas allows users to:
 - Create shapes (rectangles, circles, text)
-- Move, resize, and rotate shapes  
+- Move, resize, rotate, and delete shapes  
 - Select multiple shapes
 - Arrange shapes in layers
 - Collaborate with other users in real-time
@@ -223,6 +224,31 @@ Never leave the user waiting - always provide a text response after using tools.
             return {
               success: false,
               message: `Failed to rotate shape: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            };
+          }
+        },
+      }),
+      deleteShape: tool({
+        description:
+          "Delete shapes from the canvas. Can delete specific shapes or selected shapes",
+        inputSchema: z.object({
+          shapeIds: z
+            .array(z.string())
+            .optional()
+            .describe(
+              "Specific shape IDs to delete (optional, uses selected if not provided)"
+            ),
+        }),
+        execute: async ({ shapeIds }) => {
+          try {
+            const result = await deleteShape({ shapeIds }, selectedIds);
+            return result;
+          } catch (error) {
+            return {
+              success: false,
+              message: `Failed to delete shape: ${
                 error instanceof Error ? error.message : String(error)
               }`,
             };

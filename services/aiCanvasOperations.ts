@@ -55,6 +55,10 @@ interface RotateShapeParams {
   rotation: number;
 }
 
+interface DeleteShapeParams {
+  shapeIds?: string[];
+}
+
 interface ArrangeGridParams {
   shapeIds?: string[];
   rows: number;
@@ -263,6 +267,50 @@ export async function rotateShape(
   return {
     success: true,
     message: `Rotated shape to ${rotation} degrees`,
+  };
+}
+
+/**
+ * Delete shapes
+ */
+export async function deleteShape(
+  params: DeleteShapeParams,
+  selectedIds: string[],
+  userId: string = "ai-agent"
+) {
+  const { shapeIds } = params;
+
+  // Determine which shapes to delete
+  let targetIds: string[] = [];
+  if (shapeIds && shapeIds.length > 0) {
+    targetIds = shapeIds;
+  } else if (selectedIds.length > 0) {
+    targetIds = selectedIds;
+  }
+
+  if (targetIds.length === 0) {
+    return {
+      success: false,
+      message: "No shapes selected or specified to delete.",
+    };
+  }
+
+  const db = ensureFirebaseAdmin();
+  const batch = db.batch();
+
+  // Delete each shape
+  targetIds.forEach((id) => {
+    const docRef = db.collection(CANVAS_OBJECTS_COLLECTION).doc(id);
+    batch.delete(docRef);
+  });
+
+  await batch.commit();
+
+  return {
+    success: true,
+    message: `Deleted ${targetIds.length} shape${
+      targetIds.length > 1 ? "s" : ""
+    }`,
   };
 }
 
