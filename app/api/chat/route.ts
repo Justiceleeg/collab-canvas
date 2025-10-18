@@ -68,6 +68,53 @@ export async function POST(req: Request) {
   const selectedIds = canvasState?.selectedIds || [];
   const canvasObjects = (canvasState?.objects || []) as CanvasObject[];
 
+  // Generate optimized canvas state summary
+  const generateCanvasSummary = () => {
+    if (!canvasState || canvasObjects.length === 0) {
+      return "Canvas is empty.";
+    }
+
+    // Count shapes by type
+    const typeCounts: Record<string, number> = {};
+    const colorSet = new Set<string>();
+
+    canvasObjects.forEach((obj) => {
+      typeCounts[obj.type] = (typeCounts[obj.type] || 0) + 1;
+      colorSet.add(obj.color);
+    });
+
+    const summary = [
+      `Total: ${canvasObjects.length} shape(s)`,
+      `By type: ${Object.entries(typeCounts)
+        .map(([type, count]) => `${count} ${type}${count > 1 ? "s" : ""}`)
+        .join(", ")}`,
+      `Colors in use: ${Array.from(colorSet).slice(0, 5).join(", ")}${
+        colorSet.size > 5 ? ` and ${colorSet.size - 5} more` : ""
+      }`,
+    ];
+
+    // Include full details for selected shapes
+    if (selectedIds.length > 0) {
+      const selectedShapes = canvasObjects.filter((obj) =>
+        selectedIds.includes(obj.id)
+      );
+      summary.push(`\nSelected shape(s) [${selectedIds.length}]:`);
+      selectedShapes.forEach((shape) => {
+        summary.push(
+          `  - ${shape.type} (id: ${shape.id}): position (${shape.x}, ${
+            shape.y
+          }), size ${shape.width}x${shape.height}, color ${shape.color}${
+            shape.type === "text" ? `, text: "${shape.text}"` : ""
+          }`
+        );
+      });
+    } else {
+      summary.push("No shapes selected.");
+    }
+
+    return summary.join("\n");
+  };
+
   // Enable multi-step tool calling with stopWhen
   // The AI SDK will automatically continue after tool calls until text is generated
   const result = streamText({
@@ -85,21 +132,8 @@ The canvas allows users to:
 
 You can answer questions AND execute commands using the provided tools.
 
-Canvas state: ${
-      canvasState
-        ? `${canvasState.objects.length} shapes on canvas. ${
-            canvasState.selectedIds.length > 0
-              ? `Selected shape IDs: ${canvasState.selectedIds.join(", ")}`
-              : "No shapes selected"
-          }`
-        : "unknown"
-    }
-
-${
-  canvasState && canvasState.objects.length > 0
-    ? `Current shapes:\n${JSON.stringify(canvasState.objects, null, 2)}`
-    : ""
-}
+Canvas state:
+${generateCanvasSummary()}
 
 When executing commands:
 - For colors, you can use names like "red", "blue", "dark green", etc.
