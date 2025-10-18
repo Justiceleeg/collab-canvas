@@ -10,40 +10,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCanvasCommands } from "@/services/canvasCommands";
 import { useActiveLock } from "@/hooks/useActiveLock";
 
-// Validation helper function
-function validatePropertyUpdates(
-  updates: Partial<CanvasObject>
-): Partial<CanvasObject> {
-  const validated = { ...updates };
-
-  // Validate opacity (0-1)
-  if (validated.opacity !== undefined) {
-    validated.opacity = Math.max(0, Math.min(1, validated.opacity));
-  }
-
-  // Validate rotation (0-360)
-  if (validated.rotation !== undefined) {
-    validated.rotation = validated.rotation % 360;
-    if (validated.rotation < 0) {
-      validated.rotation += 360;
-    }
-  }
-
-  // Validate dimensions (minimum 1)
-  if (validated.width !== undefined) {
-    validated.width = Math.max(1, validated.width);
-  }
-  if (validated.height !== undefined) {
-    validated.height = Math.max(1, validated.height);
-  }
-
-  // Validate stroke width (minimum 0)
-  if (validated.strokeWidth !== undefined) {
-    validated.strokeWidth = Math.max(0, validated.strokeWidth);
-  }
-
-  return validated;
-}
+// Validation is handled in canvasCommands.ts
+// This function is kept for reference but validation is done server-side
 
 export default function PropertiesPanel() {
   const { user } = useAuth();
@@ -67,11 +35,12 @@ export default function PropertiesPanel() {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track original values before optimistic updates (for history capture)
-  const originalValuesRef = useRef<Record<string, any>>({});
+  const originalValuesRef = useRef<Record<string, unknown>>({});
 
   // Update form data when selection changes or selectedShape.id changes
   // Use selectedShape.id in dependency to avoid resetting during property updates
   const selectedShapeId = selectedShape?.id;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (selectedShape) {
       setFormData({

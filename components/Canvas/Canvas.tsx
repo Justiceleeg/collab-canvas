@@ -26,6 +26,7 @@ import ContextMenu from "./ContextMenu";
 import Toast from "./Toast";
 import LayerPanel from "./LayerPanel";
 import PropertiesPanel from "./PropertiesPanel";
+import AIPanel from "./AIPanel";
 import { Text } from "react-konva";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useAuth } from "@/hooks/useAuth";
@@ -355,6 +356,9 @@ export default function Canvas() {
 
         {/* Properties Panel */}
         <PropertiesPanel />
+
+        {/* AI Panel */}
+        <AIPanel />
       </div>
 
       {/* Connection status indicator */}

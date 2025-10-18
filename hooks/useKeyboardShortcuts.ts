@@ -40,7 +40,7 @@ export function useKeyboardShortcuts({
   onEscapeKey,
 }: UseKeyboardShortcutsProps) {
   const { selectedIds, deselectAll } = useSelectionStore();
-  const { setModifier, togglePropertiesPanel } = useUIStore();
+  const { setModifier, togglePropertiesPanel, toggleAIPanel } = useUIStore();
 
   // Track modifier keys (Shift, Ctrl/Cmd, Alt)
   useEffect(() => {
@@ -88,6 +88,13 @@ export function useKeyboardShortcuts({
         if (onEscapeKey) {
           onEscapeKey();
         }
+        return;
+      }
+
+      // Cmd/Ctrl + K: Toggle AI panel
+      if (cmdOrCtrl && e.key === "k") {
+        e.preventDefault();
+        toggleAIPanel();
         return;
       }
 

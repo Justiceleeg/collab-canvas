@@ -52,7 +52,6 @@ export default function ContextMenu({ commands }: ContextMenuProps) {
   };
 
   const isSingleShape = targetShapeIds.length === 1;
-  const isMultipleShapes = targetShapeIds.length > 1;
 
   return (
     <>

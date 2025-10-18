@@ -82,6 +82,13 @@ interface UIStore {
   };
   togglePropertiesPanel: () => void;
   setPropertiesPanelOpen: (isOpen: boolean) => void;
+
+  // AI panel state
+  aiPanel: {
+    isOpen: boolean;
+  };
+  toggleAIPanel: () => void;
+  setAIPanelOpen: (isOpen: boolean) => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -250,14 +257,51 @@ export const useUIStore = create<UIStore>((set) => ({
       propertiesPanel: {
         isOpen: !state.propertiesPanel.isOpen,
       },
+      // Close AI panel when opening properties panel
+      aiPanel: {
+        isOpen: state.propertiesPanel.isOpen ? state.aiPanel.isOpen : false,
+      },
     }));
   },
 
   setPropertiesPanelOpen: (isOpen) => {
-    set({
+    set((state) => ({
       propertiesPanel: {
         isOpen,
       },
-    });
+      // Close AI panel when opening properties panel
+      aiPanel: {
+        isOpen: isOpen ? false : state.aiPanel.isOpen,
+      },
+    }));
+  },
+
+  // AI panel initial state (defaults to closed)
+  aiPanel: {
+    isOpen: false,
+  },
+
+  toggleAIPanel: () => {
+    set((state) => ({
+      aiPanel: {
+        isOpen: !state.aiPanel.isOpen,
+      },
+      // Close properties panel when opening AI panel
+      propertiesPanel: {
+        isOpen: state.aiPanel.isOpen ? state.propertiesPanel.isOpen : false,
+      },
+    }));
+  },
+
+  setAIPanelOpen: (isOpen) => {
+    set((state) => ({
+      aiPanel: {
+        isOpen,
+      },
+      // Close properties panel when opening AI panel
+      propertiesPanel: {
+        isOpen: isOpen ? false : state.propertiesPanel.isOpen,
+      },
+    }));
   },
 }));
