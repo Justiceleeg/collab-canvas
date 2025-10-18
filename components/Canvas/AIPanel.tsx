@@ -16,11 +16,22 @@ export default function AIPanel({ objects, selectedIds }: AIPanelProps) {
 
   // AI executes tools server-side and writes directly to Firestore
   // Client automatically syncs changes via Firestore listeners
-  const { messages, sendMessage, status } = useChat();
+  const { messages, sendMessage, status, error } = useChat();
 
   const [input, setInput] = useState("");
   const isLoading = status === "streaming" || status === "submitted";
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showError, setShowError] = useState(false);
+
+  // Show error message when error occurs
+  useEffect(() => {
+    if (error) {
+      setShowError(true);
+      // Auto-hide after 10 seconds
+      const timer = setTimeout(() => setShowError(false), 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -105,6 +116,52 @@ export default function AIPanel({ objects, selectedIds }: AIPanelProps) {
         </button>
       </div>
 
+      {/* Error Banner - Fixed position, above messages */}
+      {showError && error && (
+        <div className="bg-red-600 text-white px-3 py-2 shadow-lg">
+          <div className="flex items-start gap-2">
+            <svg
+              className="w-5 h-5 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-semibold">Error processing request</p>
+              <p className="text-xs mt-1 opacity-90">
+                {error.message || "Something went wrong. Please try again."}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowError(false)}
+              className="hover:bg-red-700 p-1 rounded transition-colors"
+              title="Dismiss"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
@@ -155,7 +212,7 @@ export default function AIPanel({ objects, selectedIds }: AIPanelProps) {
           </div>
         ))}
 
-        {isLoading && (
+        {isLoading && !error && (
           <div className="flex justify-start">
             <div className="bg-gray-100 text-gray-800 rounded-lg px-3 py-2">
               <div className="text-sm">

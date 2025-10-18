@@ -42,3 +42,23 @@ export interface AICommandResult {
   message: string;
   data?: unknown;
 }
+
+// PR #24: Layout Command Types
+
+export interface ArrangeGridCommand {
+  shapeIds?: string[];
+  rows: number;
+  cols: number;
+  spacing?: number;
+}
+
+export interface DistributeCommand {
+  shapeIds?: string[];
+  direction: "horizontal" | "vertical";
+  spacing?: number;
+}
+
+export interface AlignCommand {
+  shapeIds?: string[];
+  alignType: "left" | "right" | "top" | "bottom" | "center-horizontal" | "center-vertical";
+}

@@ -4,7 +4,17 @@
 import { adminDb } from "@/lib/firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { parseColor } from "@/utils/colors";
-import type { ShapeType } from "@/types/canvas.types";
+import type { ShapeType, CanvasObject } from "@/types/canvas.types";
+import {
+  calculateGridPositions,
+  calculateDistribution,
+  calculateAlignment,
+} from "@/utils/layout";
+import {
+  findShapesByType,
+  findShapesByColor,
+  countShapes,
+} from "@/utils/shapeQuery";
 
 const CANVAS_OBJECTS_COLLECTION = "canvasObjects";
 
@@ -43,6 +53,30 @@ interface ResizeShapeParams {
 interface RotateShapeParams {
   shapeId?: string;
   rotation: number;
+}
+
+interface ArrangeGridParams {
+  shapeIds?: string[];
+  rows: number;
+  cols: number;
+  spacing?: number;
+}
+
+interface DistributeShapesParams {
+  shapeIds?: string[];
+  direction: "horizontal" | "vertical";
+  spacing?: number;
+}
+
+interface AlignShapesParams {
+  shapeIds?: string[];
+  alignType:
+    | "left"
+    | "right"
+    | "top"
+    | "bottom"
+    | "center-horizontal"
+    | "center-vertical";
 }
 
 /**
@@ -229,5 +263,296 @@ export async function rotateShape(
   return {
     success: true,
     message: `Rotated shape to ${rotation} degrees`,
+  };
+}
+
+// PR #24: Layout Operations
+
+/**
+ * Arrange shapes in a grid
+ */
+export async function arrangeGrid(
+  params: ArrangeGridParams,
+  canvasObjects: CanvasObject[],
+  selectedIds: string[],
+  userId: string = "ai-agent"
+) {
+  const { shapeIds, rows, cols, spacing = 50 } = params;
+
+  // Determine which shapes to arrange
+  let targetShapes: CanvasObject[] = [];
+  if (shapeIds && shapeIds.length > 0) {
+    targetShapes = canvasObjects.filter((obj) => shapeIds.includes(obj.id));
+  } else if (selectedIds.length > 0) {
+    targetShapes = canvasObjects.filter((obj) => selectedIds.includes(obj.id));
+  } else {
+    targetShapes = canvasObjects; // All shapes
+  }
+
+  if (targetShapes.length === 0) {
+    return {
+      success: false,
+      message: "No shapes to arrange.",
+    };
+  }
+
+  // Calculate grid positions
+  const positions = calculateGridPositions(targetShapes, rows, cols, spacing);
+
+  // Update positions in Firestore
+  const db = ensureFirebaseAdmin();
+  const batch = db.batch();
+
+  positions.forEach((pos, shapeId) => {
+    const docRef = db.collection(CANVAS_OBJECTS_COLLECTION).doc(shapeId);
+    batch.update(docRef, {
+      x: pos.x,
+      y: pos.y,
+      lastUpdatedBy: userId,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  await batch.commit();
+
+  return {
+    success: true,
+    message: `Arranged ${targetShapes.length} shapes in a ${rows}x${cols} grid`,
+  };
+}
+
+/**
+ * Distribute shapes evenly
+ */
+export async function distributeShapes(
+  params: DistributeShapesParams,
+  canvasObjects: CanvasObject[],
+  selectedIds: string[],
+  userId: string = "ai-agent"
+) {
+  const { shapeIds, direction, spacing } = params;
+
+  // Determine which shapes to distribute
+  let targetShapes: CanvasObject[] = [];
+  if (shapeIds && shapeIds.length > 0) {
+    targetShapes = canvasObjects.filter((obj) => shapeIds.includes(obj.id));
+  } else if (selectedIds.length > 0) {
+    targetShapes = canvasObjects.filter((obj) => selectedIds.includes(obj.id));
+  }
+
+  if (targetShapes.length < 2) {
+    return {
+      success: false,
+      message: "Need at least 2 shapes to distribute.",
+    };
+  }
+
+  // Calculate distribution positions
+  const positions = calculateDistribution(targetShapes, direction, spacing);
+
+  // Update positions in Firestore
+  const db = ensureFirebaseAdmin();
+  const batch = db.batch();
+
+  positions.forEach((pos, shapeId) => {
+    const docRef = db.collection(CANVAS_OBJECTS_COLLECTION).doc(shapeId);
+    batch.update(docRef, {
+      x: pos.x,
+      y: pos.y,
+      lastUpdatedBy: userId,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  await batch.commit();
+
+  return {
+    success: true,
+    message: `Distributed ${targetShapes.length} shapes ${direction}ly`,
+  };
+}
+
+/**
+ * Align shapes
+ */
+export async function alignShapes(
+  params: AlignShapesParams,
+  canvasObjects: CanvasObject[],
+  selectedIds: string[],
+  userId: string = "ai-agent"
+) {
+  const { shapeIds, alignType } = params;
+
+  // Determine which shapes to align
+  let targetShapes: CanvasObject[] = [];
+  if (shapeIds && shapeIds.length > 0) {
+    targetShapes = canvasObjects.filter((obj) => shapeIds.includes(obj.id));
+  } else if (selectedIds.length > 0) {
+    targetShapes = canvasObjects.filter((obj) => selectedIds.includes(obj.id));
+  }
+
+  if (targetShapes.length < 2) {
+    return {
+      success: false,
+      message: "Need at least 2 shapes to align.",
+    };
+  }
+
+  // Calculate alignment positions
+  const positions = calculateAlignment(targetShapes, alignType);
+
+  // Update positions in Firestore
+  const db = ensureFirebaseAdmin();
+  const batch = db.batch();
+
+  positions.forEach((pos, shapeId) => {
+    const docRef = db.collection(CANVAS_OBJECTS_COLLECTION).doc(shapeId);
+    batch.update(docRef, {
+      x: pos.x,
+      y: pos.y,
+      lastUpdatedBy: userId,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  await batch.commit();
+
+  return {
+    success: true,
+    message: `Aligned ${targetShapes.length} shapes (${alignType})`,
+  };
+}
+
+// PR #24: Query Operations
+
+/**
+ * Count shapes by criteria
+ */
+export function countShapesByType(
+  canvasObjects: CanvasObject[],
+  type?: ShapeType
+) {
+  if (type) {
+    return {
+      success: true,
+      count: countShapes(canvasObjects, { type }),
+      message: `Found ${countShapes(canvasObjects, { type })} ${type}(s)`,
+    };
+  }
+
+  const byType = {
+    rectangle: countShapes(canvasObjects, { type: "rectangle" }),
+    circle: countShapes(canvasObjects, { type: "circle" }),
+    text: countShapes(canvasObjects, { type: "text" }),
+  };
+
+  return {
+    success: true,
+    count: canvasObjects.length,
+    byType,
+    message: `Total: ${canvasObjects.length} shapes. Rectangles: ${byType.rectangle}, Circles: ${byType.circle}, Text: ${byType.text}`,
+  };
+}
+
+/**
+ * Find shapes by criteria
+ */
+export function findShapesByCriteria(
+  canvasObjects: CanvasObject[],
+  criteria: {
+    type?: ShapeType;
+    color?: string;
+  }
+) {
+  let results = canvasObjects;
+
+  if (criteria.type) {
+    results = findShapesByType(results, criteria.type);
+  }
+
+  if (criteria.color) {
+    const hexColor = parseColor(criteria.color);
+    results = findShapesByColor(results, hexColor);
+  }
+
+  return {
+    success: true,
+    shapes: results.map((s) => ({
+      id: s.id,
+      type: s.type,
+      x: s.x,
+      y: s.y,
+      width: s.width,
+      height: s.height,
+      color: s.color,
+    })),
+    count: results.length,
+    message: `Found ${results.length} shape(s) matching criteria`,
+  };
+}
+
+/**
+ * Get canvas statistics
+ */
+export function getCanvasStatistics(canvasObjects: CanvasObject[]) {
+  if (canvasObjects.length === 0) {
+    return {
+      success: true,
+      totalShapes: 0,
+      message: "Canvas is empty",
+    };
+  }
+
+  const byType = {
+    rectangle: countShapes(canvasObjects, { type: "rectangle" }),
+    circle: countShapes(canvasObjects, { type: "circle" }),
+    text: countShapes(canvasObjects, { type: "text" }),
+  };
+
+  const byColor: Record<string, number> = {};
+  canvasObjects.forEach((obj) => {
+    byColor[obj.color] = (byColor[obj.color] || 0) + 1;
+  });
+
+  // Find largest and smallest
+  let largest = canvasObjects[0];
+  let smallest = canvasObjects[0];
+  let totalWidth = 0;
+  let totalHeight = 0;
+
+  canvasObjects.forEach((obj) => {
+    const objArea = obj.width * obj.height;
+    const largestArea = largest.width * largest.height;
+    const smallestArea = smallest.width * smallest.height;
+
+    if (objArea > largestArea) largest = obj;
+    if (objArea < smallestArea) smallest = obj;
+
+    totalWidth += obj.width;
+    totalHeight += obj.height;
+  });
+
+  return {
+    success: true,
+    totalShapes: canvasObjects.length,
+    byType,
+    byColor,
+    largestShape: {
+      id: largest.id,
+      type: largest.type,
+      width: largest.width,
+      height: largest.height,
+    },
+    smallestShape: {
+      id: smallest.id,
+      type: smallest.type,
+      width: smallest.width,
+      height: smallest.height,
+    },
+    averageSize: {
+      width: Math.round(totalWidth / canvasObjects.length),
+      height: Math.round(totalHeight / canvasObjects.length),
+    },
+    message: `Canvas has ${canvasObjects.length} shapes`,
   };
 }
