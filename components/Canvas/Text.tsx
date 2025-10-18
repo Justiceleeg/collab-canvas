@@ -8,7 +8,8 @@ import { Text as KonvaText, Group, Rect } from "react-konva";
 import { CanvasObject } from "@/types/canvas.types";
 import type Konva from "konva";
 import { LockInfo } from "./Shape";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, memo } from "react";
+import { compareShapeProps } from "./shapeComparison";
 
 interface TextProps {
   shape: CanvasObject;
@@ -23,7 +24,7 @@ interface TextProps {
   onContextMenu?: (e: Konva.KonvaEventObject<PointerEvent>) => void; // Right-click
 }
 
-export default function Text({
+const Text = memo(function Text({
   shape,
   isSelected = false,
   isLocked = false,
@@ -133,4 +134,7 @@ export default function Text({
       />
     </Group>
   );
-}
+},
+compareShapeProps);
+
+export default Text;

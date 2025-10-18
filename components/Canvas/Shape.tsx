@@ -4,11 +4,13 @@
 // Generic shape wrapper component
 // Conditionally renders the appropriate shape component based on type
 
+import { memo } from "react";
 import { CanvasObject } from "@/types/canvas.types";
 import Rectangle from "./Rectangle";
 import Circle from "./Circle";
 import Text from "./Text";
 import type Konva from "konva";
+import { compareShapeProps } from "./shapeComparison";
 
 // PR #8 - Lock info type for visual feedback
 export interface LockInfo {
@@ -32,7 +34,7 @@ export interface ShapeProps {
   onContextMenu?: (e: Konva.KonvaEventObject<PointerEvent>) => void; // Right-click context menu
 }
 
-export default function Shape({
+const Shape = memo(function Shape({
   shape,
   isSelected = false,
   isLocked = false,
@@ -92,7 +94,12 @@ export default function Shape({
 
     default:
       // Fallback for unknown shape types
-      console.warn(`Unknown shape type: ${shape.type}`);
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`Unknown shape type: ${shape.type}`);
+      }
       return null;
   }
-}
+},
+compareShapeProps);
+
+export default Shape;

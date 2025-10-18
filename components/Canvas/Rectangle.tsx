@@ -3,10 +3,12 @@
 // PR #6 - Rectangle Shape Creation & Rendering
 // Rectangle shape rendering with Konva.Rect
 
+import { memo } from "react";
 import { Rect } from "react-konva";
 import { CanvasObject } from "@/types/canvas.types";
 import type Konva from "konva";
 import { LockInfo } from "./Shape"; // PR #8
+import { compareShapeProps } from "./shapeComparison";
 
 interface RectangleProps {
   shape: CanvasObject;
@@ -19,7 +21,7 @@ interface RectangleProps {
   onContextMenu?: (e: Konva.KonvaEventObject<PointerEvent>) => void; // Right-click
 }
 
-export default function Rectangle({
+const Rectangle = memo(function Rectangle({
   shape,
   isSelected = false,
   isLocked = false,
@@ -80,4 +82,7 @@ export default function Rectangle({
       listening={true}
     />
   );
-}
+},
+compareShapeProps);
+
+export default Rectangle;

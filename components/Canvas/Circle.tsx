@@ -4,10 +4,12 @@
 // PR #12.1 - Updated to use Ellipse for flexible width/height
 // Ellipse shape rendering with Konva.Ellipse (can be circular or elliptical)
 
+import { memo } from "react";
 import { Ellipse as KonvaEllipse } from "react-konva";
 import { CanvasObject } from "@/types/canvas.types";
 import type Konva from "konva";
 import { LockInfo } from "./Shape"; // PR #8
+import { compareShapeProps } from "./shapeComparison";
 
 interface CircleProps {
   shape: CanvasObject;
@@ -20,7 +22,7 @@ interface CircleProps {
   onContextMenu?: (e: Konva.KonvaEventObject<PointerEvent>) => void; // Right-click
 }
 
-export default function Circle({
+const Circle = memo(function Circle({
   shape,
   isSelected = false,
   isLocked = false,
@@ -83,4 +85,7 @@ export default function Circle({
       listening={true}
     />
   );
-}
+},
+compareShapeProps);
+
+export default Circle;
