@@ -13,6 +13,7 @@
     "@ai-sdk/react": "^2.0.76",
     "ai": "^5.0.76",
     "firebase": "^12.4.0",
+    "firebase-admin": "^13.5.0",
     "konva": "^10.0.2",
     "next": "15.5.5",
     "react": "19.1.0",

@@ -3,18 +3,23 @@
 import { useChat } from "@ai-sdk/react";
 import { useUIStore } from "@/store/uiStore";
 import { useEffect, useRef, useState } from "react";
+import type { CanvasObject } from "@/types/canvas.types";
 
-export default function AIPanel() {
+interface AIPanelProps {
+  objects: CanvasObject[];
+  selectedIds: string[];
+}
+
+export default function AIPanel({ objects, selectedIds }: AIPanelProps) {
   const isOpen = useUIStore((state) => state.aiPanel.isOpen);
   const togglePanel = useUIStore((state) => state.toggleAIPanel);
 
-  const { messages, sendMessage } = useChat();
+  // AI executes tools server-side and writes directly to Firestore
+  // Client automatically syncs changes via Firestore listeners
+  const { messages, sendMessage, status } = useChat();
 
   const [input, setInput] = useState("");
-
-  // Check if AI is currently generating a response
-  const isAIResponding =
-    messages.length > 0 && messages[messages.length - 1].role === "user";
+  const isLoading = status === "streaming" || status === "submitted";
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -126,10 +131,22 @@ export default function AIPanel() {
                   : "bg-gray-100 text-gray-800"
               }`}
             >
-              <div className="text-sm whitespace-pre-wrap">
+              <div className="text-sm whitespace-pre-wrap space-y-2">
                 {message.parts.map((part, i) => {
                   if (part.type === "text") {
                     return <div key={i}>{part.text}</div>;
+                  }
+                  // Display tool invocations
+                  if (part.type.startsWith("tool-")) {
+                    const toolName = part.type.replace("tool-", "");
+                    return (
+                      <div
+                        key={i}
+                        className="text-xs bg-blue-50 border border-blue-200 rounded px-2 py-1 mt-1"
+                      >
+                        🛠️ {toolName}
+                      </div>
+                    );
                   }
                   return null;
                 })}
@@ -138,7 +155,7 @@ export default function AIPanel() {
           </div>
         ))}
 
-        {isAIResponding && (
+        {isLoading && (
           <div className="flex justify-start">
             <div className="bg-gray-100 text-gray-800 rounded-lg px-3 py-2">
               <div className="text-sm">
@@ -162,7 +179,20 @@ export default function AIPanel() {
           onSubmit={(e) => {
             e.preventDefault();
             if (input.trim()) {
-              sendMessage({ text: input });
+              sendMessage(
+                {
+                  role: "user",
+                  parts: [{ type: "text", text: input }],
+                },
+                {
+                  body: {
+                    canvasState: {
+                      objects,
+                      selectedIds,
+                    },
+                  },
+                }
+              );
               setInput("");
             }
           }}
@@ -171,13 +201,18 @@ export default function AIPanel() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onPaste={(e) => {
+              // Allow paste to work (stop propagation to prevent canvas shortcuts)
+              e.stopPropagation();
+            }}
             placeholder="Ask me anything..."
-            disabled={isAIResponding}
-            className="flex-1 px-3 py-2 text-sm text-black border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            disabled={isLoading}
+            autoFocus
+            className="flex-1 px-3 py-2 text-sm text-black border-2 border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
           />
           <button
             type="submit"
-            disabled={isAIResponding || !input.trim()}
+            disabled={isLoading || !input.trim()}
             className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             Send

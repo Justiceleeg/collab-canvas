@@ -40,7 +40,6 @@ export default function PropertiesPanel() {
   // Update form data when selection changes or selectedShape.id changes
   // Use selectedShape.id in dependency to avoid resetting during property updates
   const selectedShapeId = selectedShape?.id;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (selectedShape) {
       setFormData({
@@ -63,7 +62,10 @@ export default function PropertiesPanel() {
       // Clear original values ref when selection changes
       originalValuesRef.current = {};
     }
-  }, [selectedShapeId]); // Only reset when selection changes, not on every property update
+    // We intentionally only depend on selectedShapeId to avoid resetting form data
+    // when selectedShape properties change during editing
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedShapeId]);
 
   // Debounced update function - updates Firestore via commands
   const updateShapeDebounced = useCallback(

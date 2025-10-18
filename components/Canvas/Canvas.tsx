@@ -358,7 +358,7 @@ export default function Canvas() {
         <PropertiesPanel />
 
         {/* AI Panel */}
-        <AIPanel />
+        <AIPanel objects={objects} selectedIds={selectedIds} />
       </div>
 
       {/* Connection status indicator */}
