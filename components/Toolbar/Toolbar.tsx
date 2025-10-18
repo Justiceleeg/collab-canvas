@@ -13,7 +13,9 @@ export default function Toolbar() {
   const { user, signOut } = useAuth();
   const router = useRouter();
   const historyManager = useHistoryManager(user?.uid);
-  const { canUndo, canRedo } = useHistoryStore();
+  // Use selective selectors to avoid unnecessary re-renders
+  const canUndo = useHistoryStore((state) => state.canUndo);
+  const canRedo = useHistoryStore((state) => state.canRedo);
 
   const handleSignOut = async () => {
     await signOut();

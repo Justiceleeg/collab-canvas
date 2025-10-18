@@ -42,7 +42,9 @@ export default function Stage({
 }: StageProps) {
   const internalStageRef = useRef<Konva.Stage>(null);
   const stageRef = externalStageRef || internalStageRef;
-  const { viewport, updateViewport } = useCanvasStore();
+  // Use selective selectors to avoid unnecessary re-renders
+  const viewport = useCanvasStore((state) => state.viewport);
+  const updateViewport = useCanvasStore((state) => state.updateViewport);
 
   const isPanning = useRef(false);
   const lastPointerPosition = useRef({ x: 0, y: 0 });

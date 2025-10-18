@@ -16,7 +16,8 @@ import { firestoreService } from "@/services/firestore.service";
 
 export function useLocking() {
   const { user } = useAuth();
-  const { getObjectById } = useCanvasStore();
+  // Use selective selector to avoid unnecessary re-renders
+  const getObjectById = useCanvasStore((state) => state.getObjectById);
   const { onlineUsers } = usePresence();
 
   /**

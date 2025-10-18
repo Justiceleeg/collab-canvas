@@ -18,9 +18,12 @@ interface LayerPanelProps {
 }
 
 export default function LayerPanel({ userId }: LayerPanelProps) {
-  const { layerPanel, toggleLayerPanel } = useUIStore();
-  const { objects } = useCanvasStore();
-  const { selectedIds, setSelectedIds } = useSelectionStore();
+  // Use selective selectors to avoid unnecessary re-renders
+  const layerPanel = useUIStore((state) => state.layerPanel);
+  const toggleLayerPanel = useUIStore((state) => state.toggleLayerPanel);
+  const objects = useCanvasStore((state) => state.objects);
+  const selectedIds = useSelectionStore((state) => state.selectedIds);
+  const setSelectedIds = useSelectionStore((state) => state.setSelectedIds);
   const { user } = useAuth();
 
   // Get command service

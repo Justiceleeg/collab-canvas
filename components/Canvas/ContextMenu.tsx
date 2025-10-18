@@ -13,7 +13,9 @@ interface ContextMenuProps {
 }
 
 export default function ContextMenu({ commands }: ContextMenuProps) {
-  const { contextMenu, closeContextMenu } = useUIStore();
+  // Use selective selectors to avoid unnecessary re-renders
+  const contextMenu = useUIStore((state) => state.contextMenu);
+  const closeContextMenu = useUIStore((state) => state.closeContextMenu);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const { isOpen, position, targetShapeIds } = contextMenu;

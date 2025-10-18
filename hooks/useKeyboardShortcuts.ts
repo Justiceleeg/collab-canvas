@@ -39,8 +39,14 @@ export function useKeyboardShortcuts({
   activeTool,
   onEscapeKey,
 }: UseKeyboardShortcutsProps) {
-  const { selectedIds, deselectAll } = useSelectionStore();
-  const { setModifier, togglePropertiesPanel, toggleAIPanel } = useUIStore();
+  // Use selective selectors to avoid unnecessary re-renders
+  const selectedIds = useSelectionStore((state) => state.selectedIds);
+  const deselectAll = useSelectionStore((state) => state.deselectAll);
+  const setModifier = useUIStore((state) => state.setModifier);
+  const togglePropertiesPanel = useUIStore(
+    (state) => state.togglePropertiesPanel
+  );
+  const toggleAIPanel = useUIStore((state) => state.toggleAIPanel);
 
   // Track modifier keys (Shift, Ctrl/Cmd, Alt)
   useEffect(() => {

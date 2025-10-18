@@ -53,8 +53,9 @@ export default function Canvas() {
   const lockManager = useActiveLock();
   const { releaseActiveLock, isLocked, getLockInfo } = lockManager;
 
-  // Selection state
-  const { selectedIds, setSelectedIds } = useSelectionStore();
+  // Selection state - use selective selectors to avoid unnecessary re-renders
+  const selectedIds = useSelectionStore((state) => state.selectedIds);
+  const setSelectedIds = useSelectionStore((state) => state.setSelectedIds);
 
   // Text editing state
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
@@ -198,6 +199,11 @@ export default function Canvas() {
     }
   }, [selectedIds.length, releaseActiveLock]);
 
+  // Memoize sorted objects to avoid expensive sorting on every render
+  const sortedObjects = useMemo(() => {
+    return [...objects].sort((a, b) => a.zIndex - b.zIndex);
+  }, [objects]);
+
   // ============================================================
   // Render
   // ============================================================
@@ -279,35 +285,31 @@ export default function Canvas() {
           )}
 
           {/* Render all shapes (sorted by zIndex - lowest first so highest renders on top) */}
-          {[...objects]
-            .sort((a, b) => a.zIndex - b.zIndex)
-            .map((obj) => (
-              <Shape
-                key={obj.id}
-                shape={obj}
-                isSelected={selectedIds.includes(obj.id)}
-                isLocked={isLocked(obj.id)}
-                lockInfo={getLockInfo(obj.id)}
-                onClick={(e) =>
-                  shapeInteractions.handleShapeClick(obj.id, e.evt.shiftKey)
-                }
-                onDragStart={(e) =>
-                  shapeInteractions.handleShapeDragStart(obj.id, e)
-                }
-                onDragEnd={(e) =>
-                  shapeInteractions.handleShapeDragEnd(obj.id, e)
-                }
-                onDblClick={
-                  obj.type === "text"
-                    ? () => handleTextDblClick(obj.id)
-                    : undefined
-                }
-                isEditing={obj.id === editingTextId}
-                onContextMenu={(e) =>
-                  shapeInteractions.handleShapeRightClick(obj.id, e)
-                }
-              />
-            ))}
+          {sortedObjects.map((obj) => (
+            <Shape
+              key={obj.id}
+              shape={obj}
+              isSelected={selectedIds.includes(obj.id)}
+              isLocked={isLocked(obj.id)}
+              lockInfo={getLockInfo(obj.id)}
+              onClick={(e) =>
+                shapeInteractions.handleShapeClick(obj.id, e.evt.shiftKey)
+              }
+              onDragStart={(e) =>
+                shapeInteractions.handleShapeDragStart(obj.id, e)
+              }
+              onDragEnd={(e) => shapeInteractions.handleShapeDragEnd(obj.id, e)}
+              onDblClick={
+                obj.type === "text"
+                  ? () => handleTextDblClick(obj.id)
+                  : undefined
+              }
+              isEditing={obj.id === editingTextId}
+              onContextMenu={(e) =>
+                shapeInteractions.handleShapeRightClick(obj.id, e)
+              }
+            />
+          ))}
 
           {/* Transformer for selected shapes (hide when editing text) */}
           {selectedIds.length > 0 && !editingTextId && (

@@ -12,7 +12,8 @@ import UserCursor from "@/components/Presence/UserCursor";
 
 export default function Cursors() {
   const { cursors } = useCursors();
-  const { viewport } = useCanvasStore();
+  // Use selective selector to avoid unnecessary re-renders
+  const viewport = useCanvasStore((state) => state.viewport);
 
   return (
     <>

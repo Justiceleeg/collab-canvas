@@ -33,8 +33,11 @@ export function useShapeInteractions({
   commands,
   lockManager,
 }: UseShapeInteractionsProps) {
-  const { selectedIds, setSelectedIds, toggleSelection } = useSelectionStore();
-  const { openContextMenu } = useUIStore();
+  // Use selective selectors to avoid unnecessary re-renders
+  const selectedIds = useSelectionStore((state) => state.selectedIds);
+  const setSelectedIds = useSelectionStore((state) => state.setSelectedIds);
+  const toggleSelection = useSelectionStore((state) => state.toggleSelection);
+  const openContextMenu = useUIStore((state) => state.openContextMenu);
   const { user } = useAuth();
   const modifiers = useUIStore((state) => state.modifiers);
 

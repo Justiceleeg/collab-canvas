@@ -7,7 +7,9 @@ import { useEffect } from "react";
 import { useUIStore } from "@/store/uiStore";
 
 export default function Toast() {
-  const { toast, hideToast } = useUIStore();
+  // Use selective selectors to avoid unnecessary re-renders
+  const toast = useUIStore((state) => state.toast);
+  const hideToast = useUIStore((state) => state.hideToast);
 
   // Auto-hide toast after 3 seconds
   useEffect(() => {

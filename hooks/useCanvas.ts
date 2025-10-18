@@ -21,8 +21,10 @@ export function useCanvas() {
   const [activeTool, setActiveTool] = useState<ShapeType | null>(null);
   const [isCreatingShape, setIsCreatingShape] = useState(false);
 
-  const { viewport, objects } = useCanvasStore();
-  const { deselectAll } = useSelectionStore(); // PR #7 - Use selection store
+  // Use selective selectors to avoid unnecessary re-renders
+  const viewport = useCanvasStore((state) => state.viewport);
+  const objects = useCanvasStore((state) => state.objects);
+  const deselectAll = useSelectionStore((state) => state.deselectAll);
   const { user } = useAuth();
 
   // Get command service
