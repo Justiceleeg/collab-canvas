@@ -4,6 +4,7 @@
 import { adminDb } from "@/lib/firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { parseColor } from "@/utils/colors";
+import { AI } from "@/utils/constants";
 import type { ShapeType, CanvasObject } from "@/types/canvas.types";
 import {
   calculateGridPositions,
@@ -97,8 +98,8 @@ export async function createShape(
   const {
     type,
     count = 1,
-    x = 400,
-    y = 300,
+    x = AI.DEFAULT_SHAPE_X,
+    y = AI.DEFAULT_SHAPE_Y,
     width,
     height,
     color,
@@ -106,18 +107,14 @@ export async function createShape(
   } = params;
 
   // Validate count
-  if (count < 1 || count > 100) {
+  if (count < AI.MIN_SHAPES_PER_BATCH || count > AI.MAX_SHAPES_PER_BATCH) {
     return {
       success: false,
-      message: "Count must be between 1 and 100",
+      message: `Count must be between ${AI.MIN_SHAPES_PER_BATCH} and ${AI.MAX_SHAPES_PER_BATCH}`,
     };
   }
 
-  const defaultSizes: Record<ShapeType, { width: number; height: number }> = {
-    rectangle: { width: 200, height: 150 },
-    circle: { width: 150, height: 150 },
-    text: { width: 200, height: 50 },
-  };
+  const defaultSizes = AI.DEFAULT_SIZES;
 
   const size = defaultSizes[type];
   const parsedColor = color ? parseColor(color) : "#3B82F6";
@@ -169,10 +166,10 @@ export async function createShape(
   const createdIds: string[] = [];
   const baseZIndex = Date.now();
 
-  // Calculate grid layout: 10 columns, offset by 20px
-  const columnsPerRow = 10;
-  const offsetX = 20;
-  const offsetY = 20;
+  // Calculate grid layout
+  const columnsPerRow = AI.BATCH_GRID_COLUMNS;
+  const offsetX = AI.BATCH_GRID_OFFSET_X;
+  const offsetY = AI.BATCH_GRID_OFFSET_Y;
 
   for (let i = 0; i < count; i++) {
     const col = i % columnsPerRow;
@@ -503,7 +500,7 @@ export async function arrangeGrid(
   selectedIds: string[],
   userId: string = "ai-agent"
 ) {
-  const { shapeIds, rows, cols, spacing = 50 } = params;
+  const { shapeIds, rows, cols, spacing = AI.DEFAULT_SPACING } = params;
 
   // Determine which shapes to arrange
   let targetShapes: CanvasObject[] = [];

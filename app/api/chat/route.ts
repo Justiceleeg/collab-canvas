@@ -2,6 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { streamText, convertToModelMessages, tool, stepCountIs } from "ai";
 import type { UIMessage } from "ai";
 import { z } from "zod";
+import { AI } from "@/utils/constants";
 import type { CanvasObject } from "@/types/canvas.types";
 import {
   createShape,
@@ -19,7 +20,7 @@ import {
 import { adminAuth } from "@/lib/firebase-admin";
 
 // Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
+export const maxDuration = AI.MAX_STREAM_DURATION_SECONDS;
 
 export async function POST(req: Request) {
   // Authenticate the request
@@ -88,8 +89,12 @@ export async function POST(req: Request) {
       `By type: ${Object.entries(typeCounts)
         .map(([type, count]) => `${count} ${type}${count > 1 ? "s" : ""}`)
         .join(", ")}`,
-      `Colors in use: ${Array.from(colorSet).slice(0, 5).join(", ")}${
-        colorSet.size > 5 ? ` and ${colorSet.size - 5} more` : ""
+      `Colors in use: ${Array.from(colorSet)
+        .slice(0, AI.MAX_COLORS_IN_SUMMARY)
+        .join(", ")}${
+        colorSet.size > AI.MAX_COLORS_IN_SUMMARY
+          ? ` and ${colorSet.size - AI.MAX_COLORS_IN_SUMMARY} more`
+          : ""
       }`,
     ];
 
@@ -120,7 +125,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai("gpt-4o-mini"),
     messages: convertToModelMessages(messages),
-    stopWhen: stepCountIs(5), // Allow up to 5 steps for tool calls + text generation
+    stopWhen: stepCountIs(AI.MAX_TOOL_CALLING_STEPS),
     system: `You are a helpful assistant for a collaborative canvas application.
 
 The canvas allows users to:
@@ -141,8 +146,12 @@ When executing commands:
 - If no position is specified for new shapes, place them at a sensible location
 
 Batch operations:
-- CREATE MULTIPLE: Use count parameter to create up to 100 shapes at once (e.g., count: 50)
-  - Multiple shapes will be offset in a grid pattern (10 per row, 20px spacing)
+- CREATE MULTIPLE: Use count parameter to create up to ${
+      AI.MAX_SHAPES_PER_BATCH
+    } shapes at once (e.g., count: 50)
+  - Multiple shapes will be offset in a grid pattern (${
+    AI.BATCH_GRID_COLUMNS
+  } per row, ${AI.BATCH_GRID_OFFSET_X}px spacing)
   - All shapes will have the same color and size
 - MOVE: Can move multiple selected shapes at once
   - Use isDelta: true to move by offset (e.g., "move 50px right" = x: 50, y: 0, isDelta: true)
@@ -172,8 +181,7 @@ IMPORTANT: Always respond after using a tool. When you execute a command or quer
 Never leave the user waiting - always provide a text response after using tools.`,
     tools: {
       createShape: tool({
-        description:
-          "Create one or more shapes (rectangle, circle, or text) on the canvas. Can create up to 100 shapes at once.",
+        description: `Create one or more shapes (rectangle, circle, or text) on the canvas. Can create up to ${AI.MAX_SHAPES_PER_BATCH} shapes at once.`,
         inputSchema: z.object({
           type: z
             .enum(["rectangle", "circle", "text"])
@@ -183,7 +191,7 @@ Never leave the user waiting - always provide a text response after using tools.
             .optional()
             .default(1)
             .describe(
-              "Number of shapes to create (1-100, default: 1). Multiple shapes will be offset slightly from each other."
+              `Number of shapes to create (${AI.MIN_SHAPES_PER_BATCH}-${AI.MAX_SHAPES_PER_BATCH}, default: 1). Multiple shapes will be offset slightly from each other.`
             ),
           x: z
             .number()
@@ -387,7 +395,9 @@ Never leave the user waiting - always provide a text response after using tools.
           spacing: z
             .number()
             .optional()
-            .describe("Spacing between shapes in pixels (default: 50)"),
+            .describe(
+              `Spacing between shapes in pixels (default: ${AI.DEFAULT_SPACING})`
+            ),
           shapeIds: z
             .array(z.string())
             .optional()

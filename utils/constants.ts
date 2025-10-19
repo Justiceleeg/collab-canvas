@@ -31,3 +31,33 @@ export const TEXT_EDITOR = {
   MIN_LINE_HEIGHT_MULTIPLIER: 1.5,
   AUTO_RESIZE_PADDING: 3,
 } as const;
+
+export const AI = {
+  // Shape creation limits
+  MAX_SHAPES_PER_BATCH: 500,
+  MIN_SHAPES_PER_BATCH: 1,
+
+  // Default positions for AI-created shapes
+  DEFAULT_SHAPE_X: 400,
+  DEFAULT_SHAPE_Y: 300,
+
+  // Default sizes for AI-created shapes (different from user-created)
+  DEFAULT_SIZES: {
+    rectangle: { width: 200, height: 150 },
+    circle: { width: 150, height: 150 },
+    text: { width: 200, height: 50 },
+  },
+
+  // Batch creation grid layout
+  BATCH_GRID_COLUMNS: 10,
+  BATCH_GRID_OFFSET_X: 20,
+  BATCH_GRID_OFFSET_Y: 20,
+
+  // Layout operations
+  DEFAULT_SPACING: 50,
+
+  // API configuration
+  MAX_STREAM_DURATION_SECONDS: 30,
+  MAX_TOOL_CALLING_STEPS: 5,
+  MAX_COLORS_IN_SUMMARY: 5,
+} as const;
