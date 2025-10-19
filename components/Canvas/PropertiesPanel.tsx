@@ -96,7 +96,7 @@ export default function PropertiesPanel() {
           // Command service already logs and shows toast
           console.error("Error updating shape properties:", error);
         }
-      }, 150); // 150ms debounce
+      }, 300); // 300ms debounce - better for rapid slider movements
     },
     [selectedShape, commands]
   );

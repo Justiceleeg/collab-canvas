@@ -124,13 +124,17 @@ export function useShapeInteractions({
         // Dragging a shape that's part of a multi-selection
         // Lock ALL selected shapes since they all move together
         if (selectedIds.length > 1) {
-          // ALWAYS re-acquire locks for all selected shapes at drag start
-          // This ensures locks are definitely in Firestore for remote users to see
-          // The transaction will handle cases where we already own the locks
-          console.log(
-            `[Drag] Re-acquiring locks for ${selectedIds.length} selected shapes`
+          // Only acquire locks we don't already have to reduce unnecessary writes
+          const shapesNeedingLocks = selectedIds.filter(
+            (shapeId) => !lockManager.hasActiveLock(shapeId)
           );
-          await lockManager.batchAcquireActiveLocks(selectedIds, true);
+
+          if (shapesNeedingLocks.length > 0) {
+            await lockManager.batchAcquireActiveLocks(
+              shapesNeedingLocks,
+              false
+            );
+          }
         } else {
           // Single selection - just lock this shape
           if (!lockManager.hasActiveLock(id)) {
@@ -245,21 +249,18 @@ export function useShapeInteractions({
       // Lock ALL shapes being transformed to prevent concurrent edits
       if (shapeIds.length === 0) return;
 
-      // ALWAYS re-acquire locks at transform start to ensure they're in Firestore
-      console.log(
-        `[Transform] Re-acquiring locks for ${shapeIds.length} shapes`
+      // Only acquire locks we don't already have to reduce unnecessary writes
+      const shapesNeedingLocks = shapeIds.filter(
+        (shapeId) => !lockManager.hasActiveLock(shapeId)
       );
 
-      if (shapeIds.length > 1) {
-        // Use batch lock for multiple shapes - force re-acquire
-        await lockManager.batchAcquireActiveLocks(shapeIds, true);
-      } else {
-        // Single shape - verify we have the lock
-        if (!lockManager.hasActiveLock(shapeIds[0])) {
-          await lockManager.acquireActiveLock(shapeIds[0]);
+      if (shapesNeedingLocks.length > 0) {
+        if (shapesNeedingLocks.length > 1) {
+          // Use batch lock for multiple shapes
+          await lockManager.batchAcquireActiveLocks(shapesNeedingLocks, false);
         } else {
-          // Re-acquire to ensure it's in Firestore
-          await lockManager.acquireActiveLock(shapeIds[0]);
+          // Single shape - acquire lock
+          await lockManager.acquireActiveLock(shapesNeedingLocks[0]);
         }
       }
     },

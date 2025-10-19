@@ -21,11 +21,6 @@ const Canvas = dynamic(() => import("@/components/Canvas/Canvas"), {
   ),
 });
 
-// // Import TestPanel for PR #5 testing (can be removed in production)
-// const TestPanel = dynamic(() => import("@/components/DevTools/TestPanel"), {
-//   ssr: false,
-// });
-
 export default function CanvasPage() {
   return (
     <AuthGuard requireAuth={true}>
