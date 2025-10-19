@@ -15,9 +15,16 @@ export default function AIPanel({ objects, selectedIds }: AIPanelProps) {
   const isOpen = useUIStore((state) => state.aiPanel.isOpen);
   const togglePanel = useUIStore((state) => state.toggleAIPanel);
 
+  // Track conversation ID to force new sessions
+  const [conversationId, setConversationId] = useState(
+    () => `conversation-${Date.now()}`
+  );
+
   // AI executes tools server-side and writes directly to Firestore
   // Client automatically syncs changes via Firestore listeners
-  const { messages, sendMessage, status, error } = useChat();
+  const { messages, sendMessage, status, error, setMessages } = useChat({
+    id: conversationId,
+  });
 
   const [input, setInput] = useState("");
   const isLoading = status === "streaming" || status === "submitted";
@@ -44,6 +51,14 @@ export default function AIPanel({ objects, selectedIds }: AIPanelProps) {
   // Prevent wheel events from propagating to canvas (which would zoom)
   const handleWheel = (e: React.WheelEvent) => {
     e.stopPropagation();
+  };
+
+  // Clear chat and start a new conversation
+  const handleClearChat = () => {
+    // Generate a new conversation ID to force a completely fresh session
+    setConversationId(`conversation-${Date.now()}`);
+    setMessages([]);
+    setShowError(false);
   };
 
   if (!isOpen) {
@@ -96,25 +111,48 @@ export default function AIPanel({ objects, selectedIds }: AIPanelProps) {
           </svg>
           <h2 className="text-xs font-semibold text-gray-800">AI Assistant</h2>
         </div>
-        <button
-          onClick={togglePanel}
-          className="p-1 hover:bg-gray-200 rounded transition-colors"
-          title="Close AI Assistant (⌘K)"
-        >
-          <svg
-            className="w-5 h-5 text-gray-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex items-center gap-1">
+          {messages.length > 0 && (
+            <button
+              onClick={handleClearChat}
+              className="p-1 hover:bg-gray-200 rounded transition-colors"
+              title="Clear chat and start new conversation"
+            >
+              <svg
+                className="w-5 h-5 text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+            </button>
+          )}
+          <button
+            onClick={togglePanel}
+            className="p-1 hover:bg-gray-200 rounded transition-colors"
+            title="Close AI Assistant (⌘K)"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
+            <svg
+              className="w-5 h-5 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Error Banner - Fixed position, above messages */}
