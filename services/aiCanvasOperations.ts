@@ -58,6 +58,18 @@ interface RotateShapeParams {
   rotation: number;
 }
 
+interface UpdateShapeParams {
+  shapeIds?: string[];
+  color?: string;
+  strokeColor?: string;
+  strokeWidth?: number;
+  opacity?: number;
+  text?: string;
+  fontSize?: number;
+  fontWeight?: "normal" | "bold";
+  fontStyle?: "normal" | "italic";
+}
+
 interface DeleteShapeParams {
   shapeIds?: string[];
   type?: ShapeType;
@@ -411,6 +423,101 @@ export async function rotateShape(
     message: `Rotated ${targetIds.length} shape${
       targetIds.length > 1 ? "s" : ""
     } to ${rotation} degrees`,
+  };
+}
+
+/**
+ * Update shape properties (color, stroke, opacity, text, etc.)
+ */
+export async function updateShape(
+  params: UpdateShapeParams,
+  selectedIds: string[],
+  userId: string = "ai-agent"
+) {
+  const {
+    shapeIds,
+    color,
+    strokeColor,
+    strokeWidth,
+    opacity,
+    text,
+    fontSize,
+    fontWeight,
+    fontStyle,
+  } = params;
+
+  // Determine which shapes to update
+  let targetIds: string[] = [];
+  if (shapeIds && shapeIds.length > 0) {
+    targetIds = shapeIds;
+  } else if (selectedIds.length > 0) {
+    targetIds = selectedIds;
+  }
+
+  if (targetIds.length === 0) {
+    return {
+      success: false,
+      message:
+        "No shape to update. Please select a shape first, or specify shapeIds parameter.",
+    };
+  }
+
+  // Build update object with only the provided properties
+  const updateData: Record<string, any> = {
+    lastUpdatedBy: userId,
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+
+  // Map of properties that need color parsing
+  const colorProps = { color, strokeColor };
+  for (const [key, value] of Object.entries(colorProps)) {
+    if (value !== undefined) {
+      updateData[key] = parseColor(value);
+    }
+  }
+
+  // Direct property mappings
+  const directProps = {
+    strokeWidth,
+    opacity,
+    text,
+    fontSize,
+    fontWeight,
+    fontStyle,
+  };
+  for (const [key, value] of Object.entries(directProps)) {
+    if (value !== undefined) {
+      updateData[key] = value;
+    }
+  }
+
+  const db = ensureFirebaseAdmin();
+  const batch = db.batch();
+
+  for (const id of targetIds) {
+    const docRef = db.collection(CANVAS_OBJECTS_COLLECTION).doc(id);
+    batch.update(docRef, updateData);
+  }
+
+  await batch.commit();
+
+  // Build descriptive message
+  const changedProps: string[] = [];
+  if (color) changedProps.push(`color to ${color}`);
+  if (strokeColor) changedProps.push(`stroke color to ${strokeColor}`);
+  if (strokeWidth !== undefined)
+    changedProps.push(`stroke width to ${strokeWidth}px`);
+  if (opacity !== undefined) changedProps.push(`opacity to ${opacity}`);
+  if (text) changedProps.push(`text to "${text}"`);
+  if (fontSize) changedProps.push(`font size to ${fontSize}px`);
+  if (fontWeight) changedProps.push(`font weight to ${fontWeight}`);
+  if (fontStyle) changedProps.push(`font style to ${fontStyle}`);
+
+  return {
+    success: true,
+    message: `Updated ${targetIds.length} shape${
+      targetIds.length > 1 ? "s" : ""
+    }: ${changedProps.join(", ")}`,
   };
 }
 

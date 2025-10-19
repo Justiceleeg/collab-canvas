@@ -9,6 +9,7 @@ import {
   moveShape,
   resizeShape,
   rotateShape,
+  updateShape,
   deleteShape,
   arrangeGrid,
   distributeShapes,
@@ -167,7 +168,7 @@ You: [Call createShape with count: 6] "I've created 6 circles! Please ask me to 
 User: "ok arrange them"  
 You: [Call arrangeGrid with rows: 2, cols: 3] "Done! Arranged them in a 2x3 grid."
 
-Batch operations:
+Shape manipulation:
 - CREATE MULTIPLE: Use count parameter to create up to ${
       AI.MAX_SHAPES_PER_BATCH
     } shapes at once (e.g., count: 50)
@@ -179,6 +180,11 @@ Batch operations:
   - Use isDelta: true to move by offset (e.g., "move 50px right" = x: 50, y: 0, isDelta: true)
   - Use isDelta: false for absolute position (e.g., "move to 500, 300" = x: 500, y: 300)
 - RESIZE/ROTATE: Applies same size/rotation to all selected shapes
+- UPDATE: Use updateShape to change properties without recreating shapes
+  - Can update: color, strokeColor, strokeWidth, opacity, text, fontSize, fontWeight, fontStyle
+  - Example: "make it red" → updateShape with color: "red"
+  - Example: "change text to Hello" → updateShape with text: "Hello"
+  - IMPORTANT: NEVER delete and recreate a shape just to change its color or properties!
 - DELETE: Can delete by shapeIds, selected shapes, OR by criteria
   - Delete by type: type: "circle" deletes all circles
   - Delete by color: color: "red" deletes all red shapes
@@ -372,6 +378,93 @@ Never leave the user waiting - always provide a text response after using tools.
             return {
               success: false,
               message: `Failed to rotate shape: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            };
+          }
+        },
+      }),
+      updateShape: tool({
+        description:
+          "Update properties of existing shapes without recreating them. Can update color, stroke, opacity, text content, font properties, etc.",
+        inputSchema: z.object({
+          shapeIds: z
+            .array(z.string())
+            .optional()
+            .describe(
+              "Specific shape IDs to update (optional, uses selected if not provided)"
+            ),
+          color: z
+            .string()
+            .optional()
+            .describe(
+              "New fill color (e.g., 'red', 'blue', '#FF0000', optional)"
+            ),
+          strokeColor: z
+            .string()
+            .optional()
+            .describe(
+              "New border/stroke color (e.g., 'black', '#000000', optional)"
+            ),
+          strokeWidth: z
+            .number()
+            .optional()
+            .describe("New border/stroke width in pixels (optional)"),
+          opacity: z
+            .number()
+            .optional()
+            .describe("New opacity (0-1, where 0 is transparent, 1 is opaque)"),
+          text: z
+            .string()
+            .optional()
+            .describe("New text content (only for text shapes, optional)"),
+          fontSize: z
+            .number()
+            .optional()
+            .describe(
+              "New font size in pixels (only for text shapes, optional)"
+            ),
+          fontWeight: z
+            .enum(["normal", "bold"])
+            .optional()
+            .describe("Font weight (only for text shapes, optional)"),
+          fontStyle: z
+            .enum(["normal", "italic"])
+            .optional()
+            .describe("Font style (only for text shapes, optional)"),
+        }),
+        execute: async ({
+          shapeIds,
+          color,
+          strokeColor,
+          strokeWidth,
+          opacity,
+          text,
+          fontSize,
+          fontWeight,
+          fontStyle,
+        }) => {
+          try {
+            const result = await updateShape(
+              {
+                shapeIds,
+                color,
+                strokeColor,
+                strokeWidth,
+                opacity,
+                text,
+                fontSize,
+                fontWeight,
+                fontStyle,
+              },
+              selectedIds,
+              userId
+            );
+            return result;
+          } catch (error) {
+            return {
+              success: false,
+              message: `Failed to update shape: ${
                 error instanceof Error ? error.message : String(error)
               }`,
             };
