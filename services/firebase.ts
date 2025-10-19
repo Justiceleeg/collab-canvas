@@ -19,7 +19,7 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Firebase services
 export const auth = getAuth(app);
-export const db = getFirestore(app); // Firestore - for persistent canvas objects
+export const db = getFirestore(app, "collab-db"); // Firestore - connect to collab-db database
 
 // Realtime Database - for presence and cursors (optional, will be needed for PR #9)
 export const rtdb = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
