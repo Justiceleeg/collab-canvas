@@ -110,12 +110,19 @@ export default function Canvas() {
         const stage = stageRef.current;
 
         // Find all shapes that intersect with the selection box
+        // Use canvas coordinates (world space) for comparison
         const shapeIdsInBox = objects
           .filter((obj) => {
             const node = stage.findOne(`#${obj.id}`);
             if (!node) return false;
 
-            const nodeBox = node.getClientRect();
+            // Get the bounding box in canvas/world space by using getClientRect
+            // with relativeTo parameter set to the layer (parent)
+            // This gives us coordinates relative to the layer, which is world space
+            const layer = node.getLayer();
+            if (!layer) return false;
+
+            const nodeBox = node.getClientRect({ relativeTo: layer });
             return KonvaLib.Util.haveIntersection(box, nodeBox);
           })
           .map((obj) => obj.id);

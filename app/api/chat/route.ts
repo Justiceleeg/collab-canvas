@@ -20,7 +20,10 @@ import {
 import { adminAuth } from "@/lib/firebase-admin";
 
 // Allow streaming responses up to 30 seconds
-export const maxDuration = AI.MAX_STREAM_DURATION_SECONDS;
+// IMPORTANT: maxDuration must be a literal number, not a reference to a constant
+// Next.js requires route segment config exports to be statically analyzable
+// Using AI.MAX_STREAM_DURATION_SECONDS here will cause build errors
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   // Authenticate the request
