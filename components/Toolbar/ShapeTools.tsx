@@ -1,7 +1,7 @@
 "use client";
 
 // Shape creation buttons for toolbar
-// Designed for bottom toolbar with dark theme
+// Designed for bottom toolbar with light theme
 
 export type ShapeToolType = "rectangle" | "circle" | "text" | null;
 
@@ -21,7 +21,7 @@ export default function ShapeTools({
         className={`tool-button ${
           selectedTool === "rectangle"
             ? "bg-blue-500 text-white"
-            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
         } p-2 rounded-lg flex items-center justify-center transition-all hover:scale-105`}
         onClick={() =>
           onToolSelect(selectedTool === "rectangle" ? null : "rectangle")
@@ -53,7 +53,7 @@ export default function ShapeTools({
         className={`tool-button ${
           selectedTool === "circle"
             ? "bg-blue-500 text-white"
-            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
         } p-2 rounded-lg flex items-center justify-center transition-all hover:scale-105`}
         onClick={() =>
           onToolSelect(selectedTool === "circle" ? null : "circle")
@@ -83,7 +83,7 @@ export default function ShapeTools({
         className={`tool-button ${
           selectedTool === "text"
             ? "bg-blue-500 text-white"
-            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
         } p-2 rounded-lg flex items-center justify-center transition-all hover:scale-105`}
         onClick={() => onToolSelect(selectedTool === "text" ? null : "text")}
         title="Text (T)"
@@ -107,9 +107,9 @@ export default function ShapeTools({
       {/* Clear selection */}
       {selectedTool && (
         <>
-          <div className="h-6 w-px bg-gray-600 mx-0.5"></div>
+          <div className="h-6 w-px bg-gray-300 mx-0.5"></div>
           <button
-            className="tool-button bg-gray-700 text-gray-300 hover:bg-gray-600 p-2 rounded-lg flex items-center justify-center transition-all hover:scale-105"
+            className="tool-button bg-gray-100 text-gray-700 hover:bg-gray-200 p-2 rounded-lg flex items-center justify-center transition-all hover:scale-105"
             onClick={() => onToolSelect(null)}
             title="Deselect tool (Esc)"
           >

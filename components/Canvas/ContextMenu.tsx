@@ -74,88 +74,92 @@ export default function ContextMenu({ commands }: ContextMenuProps) {
       >
         {/* Duplicate */}
         <button
-          className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
+          className="w-full px-4 py-2 text-left text-sm text-gray-900 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
           onClick={() =>
             handleAction(() => commands.duplicateShapes(targetShapeIds))
           }
         >
           <span className="text-lg">📋</span>
           <span>Duplicate</span>
-          <span className="ml-auto text-xs text-gray-400">⌘D</span>
+          <span className="ml-auto text-xs text-gray-600 font-normal">⌘D</span>
         </button>
 
         {/* Copy */}
         <button
-          className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
+          className="w-full px-4 py-2 text-left text-sm text-gray-900 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
           onClick={() =>
             handleAction(() => commands.copyShapes(targetShapeIds))
           }
         >
           <span className="text-lg">📄</span>
           <span>Copy</span>
-          <span className="ml-auto text-xs text-gray-400">⌘C</span>
+          <span className="ml-auto text-xs text-gray-600 font-normal">⌘C</span>
         </button>
 
         {/* Paste */}
         <button
-          className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
+          className="w-full px-4 py-2 text-left text-sm text-gray-900 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
           onClick={() => {
             handleAction(() => commands.pasteShapes());
           }}
         >
           <span className="text-lg">📋</span>
           <span>Paste</span>
-          <span className="ml-auto text-xs text-gray-400">⌘V</span>
+          <span className="ml-auto text-xs text-gray-600 font-normal">⌘V</span>
         </button>
 
         <div className="border-t border-gray-200 my-1" />
 
         {/* Bring to Front */}
         <button
-          className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
+          className="w-full px-4 py-2 text-left text-sm text-gray-900 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
           onClick={() =>
             handleAction(() => commands.bringToFront(targetShapeIds))
           }
         >
           <span className="text-lg">⏫</span>
           <span>Bring to Front</span>
-          <span className="ml-auto text-xs text-gray-400">]</span>
+          <span className="ml-auto text-xs text-gray-600 font-normal">]</span>
         </button>
 
         {/* Bring Forward */}
         <button
-          className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
+          className="w-full px-4 py-2 text-left text-sm text-gray-900 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
           onClick={() =>
             handleAction(() => commands.bringForward(targetShapeIds))
           }
         >
           <span className="text-lg">⬆️</span>
           <span>Bring Forward</span>
-          <span className="ml-auto text-xs text-gray-400">Shift+]</span>
+          <span className="ml-auto text-xs text-gray-600 font-normal">
+            Shift+]
+          </span>
         </button>
 
         {/* Send Backward */}
         <button
-          className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
+          className="w-full px-4 py-2 text-left text-sm text-gray-900 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
           onClick={() =>
             handleAction(() => commands.sendBackward(targetShapeIds))
           }
         >
           <span className="text-lg">⬇️</span>
           <span>Send Backward</span>
-          <span className="ml-auto text-xs text-gray-400">Shift+[</span>
+          <span className="ml-auto text-xs text-gray-600 font-normal">
+            Shift+[
+          </span>
         </button>
 
         {/* Send to Back */}
         <button
-          className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
+          className="w-full px-4 py-2 text-left text-sm text-gray-900 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
           onClick={() =>
             handleAction(() => commands.sendToBack(targetShapeIds))
           }
         >
           <span className="text-lg">⏬</span>
           <span>Send to Back</span>
-          <span className="ml-auto text-xs text-gray-400">[</span>
+          <span className="ml-auto text-xs text-gray-600 font-normal">[</span>
         </button>
 
         {/* Properties (only show for single shape) */}
@@ -163,7 +167,7 @@ export default function ContextMenu({ commands }: ContextMenuProps) {
           <>
             <div className="border-t border-gray-200 my-1" />
             <button
-              className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm text-gray-900 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
               onClick={() => {
                 commands.openPropertiesPanel(targetShapeIds[0]);
                 closeContextMenu();
@@ -179,14 +183,14 @@ export default function ContextMenu({ commands }: ContextMenuProps) {
 
         {/* Delete */}
         <button
-          className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-2"
+          className="w-full px-4 py-2 text-left text-sm text-gray-900 font-medium hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-2"
           onClick={() =>
             handleAction(() => commands.deleteShapes(targetShapeIds))
           }
         >
           <span className="text-lg">🗑️</span>
           <span>Delete</span>
-          <span className="ml-auto text-xs text-gray-400">⌫</span>
+          <span className="ml-auto text-xs text-gray-600 font-normal">⌫</span>
         </button>
       </div>
     </>
