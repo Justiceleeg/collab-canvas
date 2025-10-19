@@ -10,7 +10,7 @@ import Rectangle from "./Rectangle";
 import Circle from "./Circle";
 import Text from "./Text";
 import type Konva from "konva";
-import { compareShapeProps } from "./shapeComparison";
+import { compareShapeProps } from "@/utils/shapeComparison";
 
 // PR #8 - Lock info type for visual feedback
 export interface LockInfo {

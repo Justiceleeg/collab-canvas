@@ -9,7 +9,7 @@ import { Ellipse as KonvaEllipse } from "react-konva";
 import { CanvasObject } from "@/types/canvas.types";
 import type Konva from "konva";
 import { LockInfo } from "./Shape"; // PR #8
-import { compareShapeProps } from "./shapeComparison";
+import { compareShapeProps } from "@/utils/shapeComparison";
 
 interface CircleProps {
   shape: CanvasObject;

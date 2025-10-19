@@ -29,7 +29,7 @@ body {
 }
 
 /* PR #4 - Canvas styling */
-/* PR #6 - Toolbar styling */
+/* PR #6 - Navbar styling */
 
 /* Canvas page layout */
 .canvas-page {
@@ -56,11 +56,11 @@ body {
   cursor: default;
 }
 
-/* Stage wrapper - positioned below top toolbar and above bottom toolbar */
+/* Stage wrapper - positioned below top navbar and above bottom toolbar */
 /* PR #9 - Absolute positioning establishes context for cursor positioning */
 .canvas-stage-wrapper {
   position: absolute;
-  top: 64px; /* Height of top toolbar */
+  top: 64px; /* Height of top navbar */
   left: 0;
   width: 100%;
   height: calc(100% - 64px);
@@ -71,7 +71,7 @@ body {
 /* Canvas info overlay (viewport debug) */
 .canvas-info {
   position: fixed;
-  top: 80px; /* Below toolbar */
+  top: 80px; /* Below navbar */
   right: 16px;
   z-index: 100;
   pointer-events: none;

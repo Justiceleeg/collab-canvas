@@ -9,7 +9,7 @@ import { CanvasObject } from "@/types/canvas.types";
 import type Konva from "konva";
 import { LockInfo } from "./Shape";
 import { useRef, useEffect, useState, memo } from "react";
-import { compareShapeProps } from "./shapeComparison";
+import { compareShapeProps } from "@/utils/shapeComparison";
 
 interface TextProps {
   shape: CanvasObject;

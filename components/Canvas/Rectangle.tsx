@@ -8,7 +8,7 @@ import { Rect } from "react-konva";
 import { CanvasObject } from "@/types/canvas.types";
 import type Konva from "konva";
 import { LockInfo } from "./Shape"; // PR #8
-import { compareShapeProps } from "./shapeComparison";
+import { compareShapeProps } from "@/utils/shapeComparison";
 
 interface RectangleProps {
   shape: CanvasObject;

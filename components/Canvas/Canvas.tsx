@@ -17,7 +17,7 @@ import { useCanvasCommands } from "@/services/canvasCommands";
 import { useHistoryManager } from "@/services/historyManager";
 import Stage from "./Stage";
 import Shape from "./Shape";
-import Toolbar from "../Toolbar/Toolbar";
+import Navbar from "../Toolbar/Navbar";
 import BottomToolbar from "../Toolbar/BottomToolbar";
 import Cursors from "./Cursors";
 import Transformer from "./Transformer";
@@ -262,8 +262,8 @@ export default function Canvas() {
 
   return (
     <div className="canvas-container">
-      {/* Top Toolbar */}
-      <Toolbar />
+      {/* Top Navbar */}
+      <Navbar />
 
       {/* Bottom Toolbar */}
       <BottomToolbar selectedTool={activeTool} onToolSelect={setActiveTool} />
