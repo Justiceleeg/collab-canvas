@@ -17,6 +17,7 @@ import {
   countShapesByType,
   findShapesByCriteria,
   getCanvasStatistics,
+  fetchAllCanvasObjects,
 } from "@/services/aiCanvasOperations";
 import { adminAuth } from "@/lib/firebase-admin";
 
@@ -71,7 +72,8 @@ export async function POST(req: Request) {
 
   // Extract canvas state for server-side operations
   const selectedIds = canvasState?.selectedIds || [];
-  const canvasObjects = (canvasState?.objects || []) as CanvasObject[];
+  // Use let to allow refreshing canvas state after mutations
+  let canvasObjects = (canvasState?.objects || []) as CanvasObject[];
 
   // Generate optimized canvas state summary
   const generateCanvasSummary = () => {
@@ -149,24 +151,19 @@ When executing commands:
 - Coordinates are in pixels from the top-left
 - If no position is specified for new shapes, place them at a sensible location
 
-⚠️ CRITICAL LIMITATION - Canvas State Timing:
-Newly created shapes are NOT available in the same conversation turn. You CANNOT create shapes and then arrange/move/query them immediately.
+✨ MULTI-STEP OPERATIONS:
+Canvas state automatically refreshes after each tool call, so you can see your changes immediately!
 
-HANDLING "CREATE AND ARRANGE" REQUESTS:
-- If canvas is EMPTY and user asks to "create N shapes and arrange them":
-  1. Create the shapes using createShape with count parameter
-  2. Respond: "I've created N shapes. Please ask me to arrange them and I'll do it right away!"
-  3. User will see shapes appear, then ask to arrange them
-  4. In their NEXT message, you can use arrangeGrid/distributeShapes/alignShapes
+This means you CAN:
+- Create shapes and immediately arrange them in the same response
+- Create shapes and then query/move/update them right away
+- Delete shapes and verify they're gone
+- Perform complex multi-step operations in a single turn
 
-- If canvas HAS shapes and user asks to rearrange:
-  - Simply use arrangeGrid/distributeShapes/alignShapes on existing shapes
-
-EXAMPLE CONVERSATION:
-User: "arrange 6 shapes into a square"
-You: [Call createShape with count: 6] "I've created 6 circles! Please ask me to arrange them into a square layout and I'll do that next."
-User: "ok arrange them"  
-You: [Call arrangeGrid with rows: 2, cols: 3] "Done! Arranged them in a 2x3 grid."
+EXAMPLE - Single Turn Multi-Step:
+User: "create 6 circles and arrange them in a grid"
+You: [Call createShape with count: 6, then call arrangeGrid with rows: 2, cols: 3]
+     "Done! I've created 6 circles and arranged them in a 2x3 grid."
 
 Shape manipulation:
 - CREATE MULTIPLE: Use count parameter to create up to ${
@@ -273,6 +270,12 @@ Never leave the user waiting - always provide a text response after using tools.
               },
               userId
             );
+
+            // Refresh canvas state so AI can see newly created shapes
+            if (result.success) {
+              canvasObjects = await fetchAllCanvasObjects();
+            }
+
             return result;
           } catch (error) {
             return {
@@ -312,6 +315,12 @@ Never leave the user waiting - always provide a text response after using tools.
               selectedIds,
               userId
             );
+
+            // Refresh canvas state after move
+            if (result.success) {
+              canvasObjects = await fetchAllCanvasObjects();
+            }
+
             return result;
           } catch (error) {
             return {
@@ -343,6 +352,12 @@ Never leave the user waiting - always provide a text response after using tools.
               selectedIds,
               userId
             );
+
+            // Refresh canvas state after resize
+            if (result.success) {
+              canvasObjects = await fetchAllCanvasObjects();
+            }
+
             return result;
           } catch (error) {
             return {
@@ -373,6 +388,12 @@ Never leave the user waiting - always provide a text response after using tools.
               selectedIds,
               userId
             );
+
+            // Refresh canvas state after rotate
+            if (result.success) {
+              canvasObjects = await fetchAllCanvasObjects();
+            }
+
             return result;
           } catch (error) {
             return {
@@ -460,6 +481,12 @@ Never leave the user waiting - always provide a text response after using tools.
               selectedIds,
               userId
             );
+
+            // Refresh canvas state after update
+            if (result.success) {
+              canvasObjects = await fetchAllCanvasObjects();
+            }
+
             return result;
           } catch (error) {
             return {
@@ -502,6 +529,12 @@ Never leave the user waiting - always provide a text response after using tools.
               selectedIds,
               userId
             );
+
+            // Refresh canvas state after delete
+            if (result.success) {
+              canvasObjects = await fetchAllCanvasObjects();
+            }
+
             return result;
           } catch (error) {
             return {
@@ -540,6 +573,12 @@ Never leave the user waiting - always provide a text response after using tools.
               selectedIds,
               userId
             );
+
+            // Refresh canvas state after arrange
+            if (result.success) {
+              canvasObjects = await fetchAllCanvasObjects();
+            }
+
             return result;
           } catch (error) {
             return {
@@ -578,6 +617,12 @@ Never leave the user waiting - always provide a text response after using tools.
               selectedIds,
               userId
             );
+
+            // Refresh canvas state after distribute
+            if (result.success) {
+              canvasObjects = await fetchAllCanvasObjects();
+            }
+
             return result;
           } catch (error) {
             return {
@@ -617,6 +662,12 @@ Never leave the user waiting - always provide a text response after using tools.
               selectedIds,
               userId
             );
+
+            // Refresh canvas state after align
+            if (result.success) {
+              canvasObjects = await fetchAllCanvasObjects();
+            }
+
             return result;
           } catch (error) {
             return {

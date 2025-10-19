@@ -29,6 +29,19 @@ function ensureFirebaseAdmin() {
   return adminDb;
 }
 
+/**
+ * Fetch all canvas objects from Firestore
+ * Used to refresh state after mutations so AI can see its own changes
+ */
+export async function fetchAllCanvasObjects(): Promise<CanvasObject[]> {
+  const db = ensureFirebaseAdmin();
+  const snapshot = await db.collection(CANVAS_OBJECTS_COLLECTION).get();
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as CanvasObject[];
+}
+
 interface CreateShapeParams {
   type: ShapeType;
   count?: number;
