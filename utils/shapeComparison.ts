@@ -2,7 +2,7 @@
 // Prevents unnecessary re-renders by comparing only relevant props
 
 import { CanvasObject } from "@/types/canvas.types";
-import { LockInfo } from "./Shape";
+import { LockInfo } from "@/components/Canvas/Shape";
 
 /**
  * Compare two shapes for equality (for memo optimization)
