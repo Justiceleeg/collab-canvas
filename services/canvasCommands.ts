@@ -3,6 +3,7 @@
 // Handles locking, Firestore sync, optimistic updates, and error handling
 // This is the "action layer" that sits between UI interactions and domain state
 
+import { useMemo } from "react";
 import { firestoreService } from "./firestore.service";
 import { useCanvasStore } from "@/store/canvasStore";
 import { useSelectionStore } from "@/store/selectionStore";
@@ -1145,8 +1146,13 @@ export class CanvasCommandService {
 
 /**
  * Hook to access canvas commands
- * This creates a command service instance with current user and lock manager
+ * This creates a memoized command service instance with current user and lock manager
  */
 export function useCanvasCommands(lockManager: LockManager, userId?: string) {
-  return new CanvasCommandService(lockManager, userId);
+  // Memoize to prevent creating new instance on every render
+  // Only recreate if lockManager or userId changes
+  return useMemo(
+    () => new CanvasCommandService(lockManager, userId),
+    [lockManager, userId]
+  );
 }

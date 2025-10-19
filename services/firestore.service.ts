@@ -30,6 +30,21 @@ import { LOCK_TIMEOUT_MS } from "@/types/lock.types";
 
 const CANVAS_OBJECTS_COLLECTION = "canvasObjects";
 
+// Firestore batch limit
+const FIRESTORE_BATCH_LIMIT = 500;
+
+/**
+ * Helper function to chunk an array into smaller arrays
+ * Used to split large batch operations to comply with Firestore's 500-operation limit
+ */
+function chunkArray<T>(array: T[], chunkSize: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += chunkSize) {
+    chunks.push(array.slice(i, i + chunkSize));
+  }
+  return chunks;
+}
+
 // Helper function to convert Firestore document to CanvasObject
 function docToCanvasObject(doc: DocumentData): CanvasObject {
   const data = doc.data();
@@ -367,12 +382,24 @@ export const firestoreService = {
 
   /**
    * Create multiple canvas objects in a batch
+   * Automatically chunks operations if exceeding Firestore's 500-operation limit
    */
   async batchCreateObjects(
     objects: Array<Omit<CanvasObject, "id" | "createdAt" | "updatedAt">>,
     userId: string
   ): Promise<void> {
+    if (objects.length === 0) return;
+
     try {
+      // Split into chunks if exceeding Firestore limit
+      if (objects.length > FIRESTORE_BATCH_LIMIT) {
+        const chunks = chunkArray(objects, FIRESTORE_BATCH_LIMIT);
+        for (const chunk of chunks) {
+          await this.batchCreateObjects(chunk, userId);
+        }
+        return;
+      }
+
       const batch = writeBatch(db);
 
       objects.forEach((object) => {
@@ -397,6 +424,7 @@ export const firestoreService = {
 
   /**
    * Update multiple canvas objects in a batch
+   * Automatically chunks operations if exceeding Firestore's 500-operation limit
    */
   async batchUpdateObjects(
     updates: Array<{
@@ -405,7 +433,18 @@ export const firestoreService = {
     }>,
     userId: string
   ): Promise<void> {
+    if (updates.length === 0) return;
+
     try {
+      // Split into chunks if exceeding Firestore limit
+      if (updates.length > FIRESTORE_BATCH_LIMIT) {
+        const chunks = chunkArray(updates, FIRESTORE_BATCH_LIMIT);
+        for (const chunk of chunks) {
+          await this.batchUpdateObjects(chunk, userId);
+        }
+        return;
+      }
+
       const batch = writeBatch(db);
 
       updates.forEach(({ id, data }) => {
@@ -426,9 +465,21 @@ export const firestoreService = {
 
   /**
    * Delete multiple canvas objects in a batch
+   * Automatically chunks operations if exceeding Firestore's 500-operation limit
    */
   async batchDeleteObjects(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+
     try {
+      // Split into chunks if exceeding Firestore limit
+      if (ids.length > FIRESTORE_BATCH_LIMIT) {
+        const chunks = chunkArray(ids, FIRESTORE_BATCH_LIMIT);
+        for (const chunk of chunks) {
+          await this.batchDeleteObjects(chunk);
+        }
+        return;
+      }
+
       const batch = writeBatch(db);
 
       ids.forEach((id) => {

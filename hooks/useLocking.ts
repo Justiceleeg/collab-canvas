@@ -4,7 +4,7 @@
 // - Release lock on mouseup/dragend
 // - No heartbeat/polling needed
 
-import { useCallback } from "react";
+import { useCallback, useMemo, useRef, useEffect } from "react";
 import { db } from "@/services/firebase";
 import { doc, runTransaction, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +19,15 @@ export function useLocking() {
   // Use selective selector to avoid unnecessary re-renders
   const getObjectById = useCanvasStore((state) => state.getObjectById);
   const { onlineUsers } = usePresence();
+
+  // Use ref to access latest onlineUsers without causing re-memoization
+  // onlineUsers updates on every cursor movement, which would otherwise
+  // recreate all callbacks and break memoization chain
+  const onlineUsersRef = useRef(onlineUsers);
+
+  useEffect(() => {
+    onlineUsersRef.current = onlineUsers;
+  }, [onlineUsers]);
 
   /**
    * Acquire lock on an object using Firestore transaction
@@ -58,7 +67,7 @@ export function useLocking() {
             // Check if lock is stale
             if (!lockManager.isLockStale(currentLock.lockedAt)) {
               // Valid lock by another user - cannot acquire
-              const lockedUser = onlineUsers.find(
+              const lockedUser = onlineUsersRef.current.find(
                 (u) => u.userId === currentLock.lockedBy
               );
               return {
@@ -102,7 +111,7 @@ export function useLocking() {
         return { success: false, reason: "error" };
       }
     },
-    [user, onlineUsers]
+    [user]
   );
 
   /**
@@ -180,7 +189,9 @@ export function useLocking() {
       }
 
       // Find user info
-      const lockedUser = onlineUsers.find((u) => u.userId === object.lockedBy);
+      const lockedUser = onlineUsersRef.current.find(
+        (u) => u.userId === object.lockedBy
+      );
 
       return {
         lockedBy: object.lockedBy,
@@ -190,7 +201,7 @@ export function useLocking() {
         color: lockedUser?.color || "#999999", // User's color from presence
       };
     },
-    [getObjectById, onlineUsers, user]
+    [getObjectById, user]
   );
 
   /**
@@ -258,12 +269,24 @@ export function useLocking() {
     [user, getObjectById]
   );
 
-  return {
-    acquireLock,
-    releaseLock,
-    isLocked,
-    getLockInfo,
-    batchAcquireLocks,
-    batchReleaseLocks,
-  };
+  // Memoize the return object to prevent creating new reference on every render
+  // This ensures stable reference for consumers like useActiveLock
+  return useMemo(
+    () => ({
+      acquireLock,
+      releaseLock,
+      isLocked,
+      getLockInfo,
+      batchAcquireLocks,
+      batchReleaseLocks,
+    }),
+    [
+      acquireLock,
+      releaseLock,
+      isLocked,
+      getLockInfo,
+      batchAcquireLocks,
+      batchReleaseLocks,
+    ]
+  );
 }

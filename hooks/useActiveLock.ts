@@ -2,7 +2,7 @@
 // Simplifies lock acquisition and release logic
 // PR #13 - Enhanced to support multiple active locks for multi-select
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useMemo } from "react";
 import { useLocking } from "./useLocking";
 
 export function useActiveLock() {
@@ -149,12 +149,24 @@ export function useActiveLock() {
     return activeLocksRef.current.has(objectId);
   }, []);
 
-  return {
-    acquireActiveLock,
-    batchAcquireActiveLocks,
-    releaseActiveLock,
-    hasActiveLock,
-    isLocked,
-    getLockInfo,
-  };
+  // Memoize the return object to prevent creating new reference on every render
+  // This ensures stable reference for consumers like useCanvasCommands
+  return useMemo(
+    () => ({
+      acquireActiveLock,
+      batchAcquireActiveLocks,
+      releaseActiveLock,
+      hasActiveLock,
+      isLocked,
+      getLockInfo,
+    }),
+    [
+      acquireActiveLock,
+      batchAcquireActiveLocks,
+      releaseActiveLock,
+      hasActiveLock,
+      isLocked,
+      getLockInfo,
+    ]
+  );
 }
