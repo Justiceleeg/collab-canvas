@@ -15,23 +15,26 @@ if (!getApps().length) {
 
   // Only initialize if credentials are available (not during build)
   if (projectId && clientEmail && privateKey) {
-    initializeApp({
+    const app = initializeApp({
       credential: cert({
         projectId,
         clientEmail,
         privateKey: privateKey.replace(/\\n/g, "\n"),
       }),
     });
-    adminDb = getFirestore();
-    adminAuth = getAuth();
+    // Use the same database name as client-side (collab-db)
+    adminDb = getFirestore(app, "collab-db");
+    adminAuth = getAuth(app);
   } else if (process.env.NODE_ENV !== "production") {
     console.warn(
       "Firebase Admin credentials not found. AI tools will not work until credentials are added to .env.local"
     );
   }
 } else {
-  adminDb = getFirestore();
-  adminAuth = getAuth();
+  const app = getApps()[0];
+  // Use the same database name as client-side (collab-db)
+  adminDb = getFirestore(app, "collab-db");
+  adminAuth = getAuth(app);
 }
 
 export { adminDb, adminAuth };
