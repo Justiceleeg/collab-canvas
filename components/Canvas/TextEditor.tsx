@@ -50,14 +50,13 @@ export default function TextEditor({
       return {};
     }
 
-    // Get text node's parent group position
-    // Html component is positioned within the stage's coordinate system
-    // The text node is at (0,0) within its group, so use the group's position
-    const parentGroup = textNode.getParent();
-    const groupPosition = parentGroup?.position() || { x: 0, y: 0 };
+    // Get text node's absolute position accounting for parent group offsets
+    // The text Group is positioned at its center with offsetX/offsetY, so we need
+    // the absolute position to get the actual top-left corner position
+    const absolutePosition = textNode.getAbsolutePosition();
 
-    const screenX = groupPosition.x;
-    const screenY = groupPosition.y;
+    const screenX = absolutePosition.x;
+    const screenY = absolutePosition.y;
 
     // Use unscaled dimensions - the stage will apply scaling automatically
     const padding = textNode.padding();
